@@ -1,0 +1,350 @@
+{
+  "generated": "2026-09-22",
+  "club": {
+    "name": "Richmond Yacht Club",
+    "lat": 37.9088782,
+    "lon": -122.3842094
+  },
+  "drive_time_method": "routed",
+  "min_cell_size": 5,
+  "totals": {
+    "all_memberships": 583,
+    "california": 557,
+    "out_of_state": 26,
+    "within_60": 422,
+    "ca_beyond_60": 135,
+    "median_age_all": 65.0,
+    "regular": 564,
+    "associate": 19
+  },
+  "data_quality": {
+    "age_missing": 24,
+    "age_invalid": 1,
+    "zip_plus4_normalized": 18,
+    "po_box_remapped": 11,
+    "zips_suppressed": 115,
+    "memberships_in_suppressed_zips": 185,
+    "zips_isochrone_fallback": 1
+  },
+  "bands": [
+    {
+      "band": 15,
+      "label": "0\u201315 min",
+      "memberships": 120,
+      "share": 0.2058,
+      "cumulative": 120,
+      "cumulative_share": 0.2058,
+      "regular": 114,
+      "associate": 6,
+      "median_age": 68.0,
+      "share_70_plus": 43.1,
+      "ages_recorded": 116,
+      "zips_with_memberships": 3
+    },
+    {
+      "band": 30,
+      "label": "15\u201330 min",
+      "memberships": 159,
+      "share": 0.2727,
+      "cumulative": 279,
+      "cumulative_share": 0.4786,
+      "regular": 151,
+      "associate": 8,
+      "median_age": 64.0,
+      "share_70_plus": 38.9,
+      "ages_recorded": 149,
+      "zips_with_memberships": 32
+    },
+    {
+      "band": 45,
+      "label": "30\u201345 min",
+      "memberships": 102,
+      "share": 0.175,
+      "cumulative": 381,
+      "cumulative_share": 0.6535,
+      "regular": 100,
+      "associate": 2,
+      "median_age": 64.0,
+      "share_70_plus": 34.0,
+      "ages_recorded": 97,
+      "zips_with_memberships": 33
+    },
+    {
+      "band": 60,
+      "label": "45\u201360 min",
+      "memberships": 41,
+      "share": 0.0703,
+      "cumulative": 422,
+      "cumulative_share": 0.7238,
+      "regular": 40,
+      "associate": 1,
+      "median_age": 64.0,
+      "share_70_plus": 45.0,
+      "ages_recorded": 40,
+      "zips_with_memberships": 23
+    }
+  ],
+  "age_mix": [
+    {
+      "age_group": "Under 40",
+      "reach": "30\u201360 min",
+      "memberships": 8
+    },
+    {
+      "age_group": "Under 40",
+      "reach": "Beyond 60 min",
+      "memberships": 5
+    },
+    {
+      "age_group": "Under 40",
+      "reach": "Within 30 min",
+      "memberships": 16
+    },
+    {
+      "age_group": "40\u201349",
+      "reach": "30\u201360 min",
+      "memberships": 12
+    },
+    {
+      "age_group": "40\u201349",
+      "reach": "Beyond 60 min",
+      "memberships": 16
+    },
+    {
+      "age_group": "40\u201349",
+      "reach": "Within 30 min",
+      "memberships": 31
+    },
+    {
+      "age_group": "50\u201359",
+      "reach": "30\u201360 min",
+      "memberships": 28
+    },
+    {
+      "age_group": "50\u201359",
+      "reach": "Beyond 60 min",
+      "memberships": 20
+    },
+    {
+      "age_group": "50\u201359",
+      "reach": "Within 30 min",
+      "memberships": 38
+    },
+    {
+      "age_group": "60\u201369",
+      "reach": "30\u201360 min",
+      "memberships": 38
+    },
+    {
+      "age_group": "60\u201369",
+      "reach": "Beyond 60 min",
+      "memberships": 48
+    },
+    {
+      "age_group": "60\u201369",
+      "reach": "Within 30 min",
+      "memberships": 72
+    },
+    {
+      "age_group": "70\u201379",
+      "reach": "30\u201360 min",
+      "memberships": 36
+    },
+    {
+      "age_group": "70\u201379",
+      "reach": "Beyond 60 min",
+      "memberships": 54
+    },
+    {
+      "age_group": "70\u201379",
+      "reach": "Within 30 min",
+      "memberships": 78
+    },
+    {
+      "age_group": "80+",
+      "reach": "30\u201360 min",
+      "memberships": 15
+    },
+    {
+      "age_group": "80+",
+      "reach": "Beyond 60 min",
+      "memberships": 13
+    },
+    {
+      "age_group": "80+",
+      "reach": "Within 30 min",
+      "memberships": 30
+    },
+    {
+      "age_group": "Not recorded",
+      "reach": "30\u201360 min",
+      "memberships": 6
+    },
+    {
+      "age_group": "Not recorded",
+      "reach": "Beyond 60 min",
+      "memberships": 5
+    },
+    {
+      "age_group": "Not recorded",
+      "reach": "Within 30 min",
+      "memberships": 14
+    }
+  ],
+  "counties": [
+    {
+      "county": "Contra Costa",
+      "memberships": 215
+    },
+    {
+      "county": "Alameda",
+      "memberships": 91
+    },
+    {
+      "county": "Marin",
+      "memberships": 61
+    },
+    {
+      "county": "San Francisco",
+      "memberships": 23
+    },
+    {
+      "county": "Solano",
+      "memberships": 15
+    },
+    {
+      "county": "Sonoma",
+      "memberships": 8
+    },
+    {
+      "county": "San Mateo",
+      "memberships": 6
+    },
+    {
+      "county": "Napa",
+      "memberships": 3
+    }
+  ],
+  "top_zips": [
+    {
+      "zip_code": "94801",
+      "county": "Contra Costa",
+      "band": 15.0,
+      "drive_min": 12.0,
+      "distance_mi": 4.9,
+      "memberships": 102
+    },
+    {
+      "zip_code": "94707",
+      "county": "Alameda",
+      "band": 30.0,
+      "drive_min": 20.0,
+      "distance_mi": 9.0,
+      "memberships": 16
+    },
+    {
+      "zip_code": "94708",
+      "county": "Contra Costa",
+      "band": 30.0,
+      "drive_min": 23.6,
+      "distance_mi": 10.2,
+      "memberships": 16
+    },
+    {
+      "zip_code": "94501",
+      "county": "Alameda",
+      "band": 30.0,
+      "drive_min": 28.7,
+      "distance_mi": 16.8,
+      "memberships": 15
+    },
+    {
+      "zip_code": "94530",
+      "county": "Contra Costa",
+      "band": 30.0,
+      "drive_min": 19.5,
+      "distance_mi": 8.6,
+      "memberships": 14
+    },
+    {
+      "zip_code": "94804",
+      "county": "Contra Costa",
+      "band": 15.0,
+      "drive_min": 8.9,
+      "distance_mi": 3.3,
+      "memberships": 13
+    },
+    {
+      "zip_code": "94706",
+      "county": "Alameda",
+      "band": 30.0,
+      "drive_min": 15.3,
+      "distance_mi": 7.9,
+      "memberships": 12
+    },
+    {
+      "zip_code": "94901",
+      "county": "Marin",
+      "band": 30.0,
+      "drive_min": 23.2,
+      "distance_mi": 11.5,
+      "memberships": 11
+    },
+    {
+      "zip_code": "94553",
+      "county": "Contra Costa",
+      "band": 45.0,
+      "drive_min": 36.0,
+      "distance_mi": 23.8,
+      "memberships": 10
+    },
+    {
+      "zip_code": "94510",
+      "county": "Solano",
+      "band": 45.0,
+      "drive_min": 43.9,
+      "distance_mi": 29.9,
+      "memberships": 10
+    },
+    {
+      "zip_code": "94925",
+      "county": "Marin",
+      "band": 30.0,
+      "drive_min": 24.9,
+      "distance_mi": 11.1,
+      "memberships": 9
+    },
+    {
+      "zip_code": "95472",
+      "county": "Sonoma",
+      "band": null,
+      "drive_min": 78.7,
+      "distance_mi": 51.4,
+      "memberships": 9
+    },
+    {
+      "zip_code": "94596",
+      "county": "Contra Costa",
+      "band": 45.0,
+      "drive_min": 42.2,
+      "distance_mi": 28.4,
+      "memberships": 8
+    },
+    {
+      "zip_code": "94549",
+      "county": "Contra Costa",
+      "band": 45.0,
+      "drive_min": 38.9,
+      "distance_mi": 24.4,
+      "memberships": 8
+    },
+    {
+      "zip_code": "94563",
+      "county": "Contra Costa",
+      "band": 30.0,
+      "drive_min": 29.2,
+      "distance_mi": 19.8,
+      "memberships": 7
+    }
+  ]
+}

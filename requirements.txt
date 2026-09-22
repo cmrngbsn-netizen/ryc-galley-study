@@ -1,0 +1,6 @@
+pandas
+geopandas
+shapely
+pygris
+openrouteservice
+geopy

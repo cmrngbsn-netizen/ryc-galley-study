@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RYC Galley Catchment Study</title>
+<meta name="description" content="Drive-time catchment analysis of Richmond Yacht Club memberships to inform investment in the Galley dining room.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #0d1b2a; --surface: #14263a; --surface-2: #1b3048; --border: #27415e;
+  --ink: #f2efe6; --ink-2: #c3cedb; --ink-3: #8b9bb0; --grid: #22384f;
+  --accent: #c9a227; --gold: #c9a227; --link: #9cc3e6;
+  --band-15: #4fb286; --band-30: #e3c14f; --band-45: #e8873f; --band-60: #d4574e;
+  --s-reg: #9cc3e6; --s-assoc: #c9a227;
+  --r-near: #4fb286; --r-mid: #e8873f; --r-far: #6b7c90;
+  --shadow: 0 1px 3px rgba(0,0,0,.35);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 Inter, system-ui, sans-serif; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+header.hero { border-bottom: 1px solid var(--border); background: var(--surface); }
+header.hero .wrap { padding-top: 36px; padding-bottom: 28px; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); }
+h1 { font-family: "Source Serif 4", Georgia, serif; font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 6px 0 10px; }
+h2 { font-family: "Source Serif 4", Georgia, serif; font-size: 24px; margin: 0 0 6px; }
+h3 { font-size: 15px; margin: 0 0 4px; }
+.lede { color: var(--ink-2); max-width: 780px; margin: 0; font-size: 16px; }
+.meta { margin-top: 14px; font-size: 13px; color: var(--ink-3); }
+nav.toc { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; font-size: 14px; }
+nav.toc a { color: var(--link); text-decoration: none; font-weight: 500; }
+section { padding: 40px 0 8px; }
+.sub { color: var(--ink-2); margin: 0 0 18px; max-width: 800px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.kpi .label { font-size: 13px; color: var(--ink-2); font-weight: 500; }
+.kpi .value { font-size: 34px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+.kpi .note { font-size: 13px; color: var(--ink-3); }
+.finding { border-left: 3px solid var(--gold); padding: 12px 16px; background: var(--surface); border-radius: 0 10px 10px 0; margin-top: 16px; max-width: 920px; }
+.defn { font-size: 13px; color: var(--ink-3); margin-top: 10px; max-width: 920px; }
+
+/* Map figures: a cartographic layout -- title block, framed map, source line */
+.mapfig { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 22px; }
+.mapfig .titleblock { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+.mapfig .fignum { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--gold); }
+.mapfig h3 { font-family: "Source Serif 4", Georgia, serif; font-size: 21px; margin: 2px 0 4px; }
+.mapfig .reads { margin: 0; color: var(--ink-2); font-size: 14px; max-width: 860px; }
+.mapfig .map { height: 600px; background: var(--surface-2); }
+.mapfig .source { padding: 10px 20px; font-size: 12px; color: var(--ink-3); border-top: 1px solid var(--border); }
+.leaflet-container { font-family: Inter, sans-serif; }
+.leaflet-container path.leaflet-interactive:focus, .leaflet-container .leaflet-interactive:focus { outline: none; }
+.maptools { display: flex; gap: 18px; flex-wrap: wrap; padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--ink-2); background: var(--surface-2); }
+.maptools label { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
+.maptools input { accent-color: var(--gold); width: 15px; height: 15px; }
+.maptools .lbl { font-weight: 600; color: var(--ink); }
+.linesw { display: inline-block; width: 18px; height: 0; border-top: 3px solid; flex-shrink: 0; }
+.legend { background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-size: 12px; line-height: 1.6; box-shadow: var(--shadow); max-width: 220px; }
+.legend .lt { font-weight: 700; font-size: 12.5px; margin-bottom: 2px; }
+.legend .lu { color: var(--ink-3); font-size: 11.5px; margin-bottom: 6px; }
+.legend .row { display: flex; align-items: center; gap: 8px; }
+.legend hr { border: 0; border-top: 1px solid var(--border); margin: 8px 0; }
+.sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; border: 1px solid rgba(0,0,0,.12); }
+.legend-out { display: none; }
+.north { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); width: 44px; height: 54px; display: flex; align-items: center; justify-content: center; }
+.leaflet-control-scale-line { background: var(--surface) !important; color: var(--ink) !important; border-color: var(--ink-2) !important; font-size: 11px; }
+.leaflet-tooltip.zt { background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); font: 12.5px/1.55 Inter, sans-serif; padding: 8px 10px; }
+.leaflet-tooltip.zt b { font-size: 13.5px; }
+.leaflet-tooltip.zt .muted { color: var(--ink-3); }
+
+/* Charts */
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; }
+.chart .reads { color: var(--ink-2); font-size: 13.5px; margin: 0 0 12px; }
+.chart .box { position: relative; height: 220px; max-width: 640px; }
+.chart.wide .box { max-width: none; }
+.chart .note { font-size: 12px; color: var(--ink-3); margin-top: 10px; }
+.chart .legend-inline { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); margin-bottom: 8px; }
+.chart .legend-inline span { display: inline-flex; align-items: center; gap: 6px; }
+
+.bars { display: flex; flex-direction: column; gap: 14px; }
+.bar-row .top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; gap: 10px; }
+.bar-row .top span:last-child { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.track { height: 14px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.fill { height: 100%; border-radius: 0 4px 4px 0; transition: width .3s; }
+.grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-weight: 600; color: var(--ink-2); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); padding: 8px 6px; }
+td { padding: 8px 6px; border-bottom: 1px solid var(--border); }
+td.num, th.num { text-align: right; }
+.model { display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px; }
+.slider { margin-bottom: 16px; }
+.slider label { display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 500; gap: 10px; }
+.slider label output { color: var(--accent); font-variant-numeric: tabular-nums; }
+.slider small { display: block; color: var(--ink-3); font-size: 12px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+input[type=number] { width: 90px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
+.big { font-size: 48px; font-weight: 700; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+.pill.ok { background: rgba(79,178,134,.18); color: #7fd3aa; }
+.pill.warn { background: rgba(227,193,79,.18); color: #f0d27a; }
+.pill.over { background: rgba(212,87,78,.2); color: #f08a82; }
+.caveat { font-size: 12.5px; color: var(--ink-3); margin-top: 12px; }
+.notes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.dq .n { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dq .t { font-size: 13px; color: var(--ink-2); }
+.method p, .method li { color: var(--ink-2); max-width: 880px; }
+.method li { margin-bottom: 8px; }
+.nexttable td { vertical-align: top; color: var(--ink-2); }
+.nexttable td strong { color: var(--ink); }
+.nextlist li { color: var(--ink-2); margin-bottom: 8px; max-width: 880px; }
+.method h3 { margin-top: 24px; font-size: 16px; }
+.sources li { margin-bottom: 8px; }
+.sources a { color: var(--link); }
+footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 40px; font-size: 13px; color: var(--ink-3); }
+@media (max-width: 860px) {
+  .kpis { grid-template-columns: repeat(2, 1fr); }
+  .grid-2, .model, .notes-grid { grid-template-columns: 1fr; }
+  .chart .box { height: 200px; }
+  .mapfig .map { height: 460px; }
+  .legend-in { display: none; }
+  .legend-out { display: block; max-width: none; border-radius: 0; border-width: 1px 0 0; box-shadow: none; padding: 12px 20px; }
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Richmond Yacht Club · Board briefing draft</div>
+    <h1>Galley Catchment Study</h1>
+    <p class="lede">How many RYC memberships are close enough to the club to come in for dinner? This study uses the methods retailers use to decide whether a location is worth investing in (drive-time trade areas, distance decay and demand estimates) to help the board evaluate an expansion of the Galley.</p>
+    <div class="meta" id="meta">Loading data…</div>
+    <nav class="toc">
+      <a href="#summary">Summary</a><a href="#maps">Maps</a><a href="#charts">Charts</a><a href="#demand">Demand model</a><a href="#detail">Tables</a><a href="#notes">Data notes</a><a href="#next">Next steps</a><a href="#method">Methodology &amp; sources</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+<section id="summary">
+  <h2>Key figures</h2>
+  <p class="sub">Drive time is measured by road from the clubhouse at 351 Brickyard Cove Rd, Richmond. Percentages are of <em>all</em> active Regular and Associate memberships, including those out of state.</p>
+  <div class="kpis" id="kpis"></div>
+  <div class="finding" id="finding"></div>
+  <p class="defn"><strong>A note on units:</strong> every count on this page is a <em>membership</em>, not a person. One membership can cover a whole household, so the number of people who could come to dinner is higher than these counts.</p>
+</section>
+
+<section id="maps">
+  <h2>Maps</h2>
+  <p class="sub">Hover over any zip code for details. Scroll-wheel zoom is off so the page scrolls normally; use the + / − buttons to zoom. Zip codes with no RYC memberships are drawn faintly so the eye goes to where members are.</p>
+
+  <figure class="mapfig" style="margin:0 0 22px">
+    <div class="titleblock">
+      <div class="fignum">Map 1</div>
+      <h3>Where RYC memberships are concentrated</h3>
+      <p class="reads"><strong>How to read it:</strong> each zip code is shaded by how many RYC memberships it has. The lighter and brighter the blue, the more memberships; dark, unshaded areas have none. The colored drive-time rings show how far you can drive from the clubhouse in 15, 30, 45 and 60 minutes.</p>
+    </div>
+    <div class="maptools"><span class="lbl">Show:</span>
+      <label><input type="checkbox" data-map="1" data-layer="rings" checked>Drive-time rings</label>
+      <label><input type="checkbox" data-map="1" data-layer="club" checked>Clubhouse marker</label>
+    </div>
+    <div class="map" id="map1" role="img" aria-label="Map of memberships per zip code with labeled drive-time rings"></div>
+    <div class="source" id="src1"></div>
+  </figure>
+
+  <figure class="mapfig" style="margin:0">
+    <div class="titleblock">
+      <div class="fignum">Map 2</div>
+      <h3>Drive time to the clubhouse from each zip code with memberships</h3>
+      <p class="reads"><strong>How to read it:</strong> each zip code with at least one membership is colored by its typical drive to the club: green is 0–15 minutes, yellow 15–30, orange 30–45 and red 45–60. Hatched gray zips are more than 60 minutes away. Zips with no memberships are drawn faintly.</p>
+    </div>
+    <div class="maptools"><span class="lbl">Show:</span>
+      <label><input type="checkbox" data-map="2" data-layer="zips" checked>Zip code boundaries</label>
+      <label><input type="checkbox" data-map="2" data-layer="club" checked>Clubhouse marker</label>
+    </div>
+    <div class="map" id="map2" role="img" aria-label="Choropleth map of drive-time band for zip codes with memberships"></div>
+    <div class="source" id="src2"></div>
+  </figure>
+</section>
+
+<section id="charts">
+  <h2>Charts</h2>
+  <p class="sub">The same data without the map, for comparing and ranking. Hover over any bar or point for exact values.</p>
+  <div class="charts">
+    <div class="card chart">
+      <h3>Share of memberships within a given drive time</h3>
+      <p class="reads">Follow the line to any drive time to see what share of all memberships live within it. A steep early climb means the membership is concentrated close to the club.</p>
+      <div class="box"><canvas id="cCapture"></canvas></div>
+      <p class="note" id="nCapture"></p>
+    </div>
+    <div class="card chart">
+      <h3>Memberships by drive-time band and type</h3>
+      <p class="reads">How many memberships fall in each 15-minute band, split into Regular and Associate.</p>
+      <div class="legend-inline"><span><i class="sw" style="background:var(--s-reg)"></i>Regular</span><span><i class="sw" style="background:var(--s-assoc)"></i>Associate</span></div>
+      <div class="box"><canvas id="cBands"></canvas></div>
+    </div>
+    <div class="card chart">
+      <h3>Drive time vs. road distance, by zip code</h3>
+      <p class="reads">Each dot is a zip code with memberships, and bigger dots have more memberships. Dots above the trend take longer to drive than their distance suggests, usually because of bridges, hills or indirect routes.</p>
+      <div class="legend-inline"><span><i class="sw" style="background:var(--band-15)"></i>0–15 min</span><span><i class="sw" style="background:var(--band-30)"></i>15–30</span><span><i class="sw" style="background:var(--band-45)"></i>30–45</span><span><i class="sw" style="background:var(--band-60)"></i>45–60</span><span><i class="sw" style="background:var(--ink-3)"></i>More than 60</span></div>
+      <div class="box"><canvas id="cScatter"></canvas></div>
+      <p class="note">Colors match the drive-time bands on Map 2. Zips more than 90 minutes away are left off to keep the scale readable.</p>
+    </div>
+    <div class="card chart">
+      <h3>Memberships within 60 minutes, by county</h3>
+      <p class="reads">Which counties make up the core trade area.</p>
+      <div class="box"><canvas id="cCounty"></canvas></div>
+    </div>
+    <div class="card chart wide" style="grid-column: 1 / -1">
+      <h3>Age profile by distance from the club</h3>
+      <p class="reads">Number of memberships in each age group, grouped by how far away they are. The age is the one recorded on the membership. "Not recorded" means the roster has no age for that membership.</p>
+      <div class="legend-inline"><span><i class="sw" style="background:var(--r-near)"></i>Within 30 min</span><span><i class="sw" style="background:var(--r-mid)"></i>30–60 min</span><span><i class="sw" style="background:var(--r-far)"></i>More than 60 min or out of state</span></div>
+      <div class="box"><canvas id="cAge"></canvas></div>
+      <p class="note" id="nAge"></p>
+    </div>
+  </div>
+</section>
+
+<section id="demand">
+  <h2>Dinner demand model</h2>
+  <p class="sub">A distance-decay model, as retailers use to forecast store traffic. Memberships close to the club are most likely to come to dinner, and the likelihood falls with each extra 15 minutes of driving. <strong>The default values are placeholders.</strong> Calibrate them with the Galley's actual dinner counts before drawing conclusions.</p>
+  <div class="model">
+    <div class="card">
+      <div class="slider"><label>Dinner rate, memberships within 15 min <output id="o-base"></output></label>
+        <input type="range" id="base" min="1" max="30" step="0.5" value="8">
+        <small>Share of nearby memberships that come to a given dinner night</small></div>
+      <div class="slider"><label>Drop-off per 15-minute band <output id="o-decay"></output></label>
+        <input type="range" id="decay" min="0" max="80" step="5" value="40">
+        <small>How much less likely a membership is to come with each extra 15 minutes of driving</small></div>
+      <div class="slider"><label>Diners per attending membership <output id="o-party"></output></label>
+        <input type="range" id="party" min="1" max="4" step="0.1" value="2">
+        <small>Household members and guests who come along</small></div>
+      <div class="slider"><label>Evening traffic factor <output id="o-traffic"></output></label>
+        <input type="range" id="traffic" min="1" max="2" step="0.05" value="1">
+        <small>1.0× means no traffic. 1.3–1.5× roughly matches weekday evenings on the bridges and I-580/I-80</small></div>
+      <div class="slider"><label>Membership growth <output id="o-growth"></output></label>
+        <input type="range" id="growth" min="-20" max="40" step="1" value="0">
+        <small>Scenario: change in number of memberships, spread across the same areas</small></div>
+      <div class="slider"><label>Current Galley seats <input type="number" id="seats" value="80" min="1"></label>
+        <small>Replace with the actual seating count</small></div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;color:var(--ink-2);font-weight:500">Expected diners (covers) per dinner night</div>
+      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:8px 0 6px">
+        <span class="big" id="covers">—</span><span id="util"></span>
+      </div>
+      <p style="margin:0 0 18px;color:var(--ink-2);font-size:13.5px" id="utilText"></p>
+      <h3 style="margin-bottom:10px">Where the diners come from</h3>
+      <div class="bars" id="coverBars"></div>
+      <p class="caveat">Formula: diners = Σ over bands of memberships × dinner rate × (1 − drop-off)<sup>band index</sup> × diners per membership. Only memberships within 60 minutes are counted. The traffic factor stretches every drive time, which moves memberships into slower bands; anything pushed past 60 minutes drops out.</p>
+    </div>
+  </div>
+</section>
+
+<section id="detail">
+  <h2>Tables</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h3 style="margin-bottom:8px">Top zip codes by memberships</h3>
+      <table id="zipTable"><thead><tr><th>Zip</th><th>County</th><th class="num">Drive (min)</th><th class="num">Road (mi)</th><th class="num">Memberships</th></tr></thead><tbody></tbody></table>
+      <p class="caveat" id="zipNote"></p>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:8px">Profile by drive-time band</h3>
+      <table id="profileTable"><thead><tr><th>Band</th><th class="num">Memberships</th><th class="num">Median age</th><th class="num">Age 70+</th></tr></thead><tbody></tbody></table>
+      <p class="caveat">Median age and the 70+ share only use memberships with an age on record (see Data notes).</p>
+      <h3 style="margin:18px 0 8px">By county (within 60 min)</h3>
+      <table id="countyTable"><thead><tr><th>County</th><th class="num">Memberships</th><th class="num">Share</th></tr></thead><tbody></tbody></table>
+    </div>
+  </div>
+</section>
+
+<section id="notes">
+  <h2>Data notes: suppressed and missing information</h2>
+  <p class="sub">Information is left out for two reasons. Some is withheld on purpose to protect members' privacy, and some is simply missing from the roster. Here is exactly what each affects.</p>
+  <div class="notes-grid" id="dq"></div>
+</section>
+
+<section id="next">
+  <h2>Next steps: data for a complete analysis</h2>
+  <p class="sub">This study shows where memberships are and how far they are from the club. To decide whether a bigger Galley pays for itself, the board also needs to know how members actually use the Galley today and what an expansion would cost. These are the datasets that would close that gap, most important first.</p>
+  <div class="card" style="overflow-x:auto">
+    <table class="nexttable">
+      <thead><tr><th>Priority</th><th>Data to collect</th><th>What it tells us</th><th>Likely source</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill over">High</span></td><td><strong>Dinner attendance by membership</strong>: date of each Galley visit, 12–24 months</td><td>Which memberships come to dinner regularly, occasionally or never, and how that changes with drive time. This replaces the placeholder dinner rate and drop-off in the demand model with measured values.</td><td>Galley point-of-sale or member charge records, reservation book</td></tr>
+        <tr><td><span class="pill over">High</span></td><td><strong>Spend per visit</strong>: check total, covers, food vs. bar</td><td>Average check per diner and per membership, and revenue by drive-time band. This turns "extra diners" into extra revenue.</td><td>Point-of-sale / member billing</td></tr>
+        <tr><td><span class="pill over">High</span></td><td><strong>Capacity and turn-aways</strong>: seats, turns per night, nights at capacity, reservations declined or waitlisted</td><td>Whether demand is being lost today. Turned-away diners are the clearest sign that more seats would be filled.</td><td>Galley manager, reservation system</td></tr>
+        <tr><td><span class="pill over">High</span></td><td><strong>Expansion cost and operating cost</strong>: build-out estimate, added staffing and food cost</td><td>The break-even point: how many extra covers a night, at the average check and margin, are needed to pay back the investment, and over how many years.</td><td>Board / House committee, contractor estimate</td></tr>
+        <tr><td><span class="pill warn">Medium</span></td><td><strong>Party size and guests</strong> per visit</td><td>Real "diners per attending membership", which replaces another model assumption.</td><td>Point-of-sale cover counts</td></tr>
+        <tr><td><span class="pill warn">Medium</span></td><td><strong>Night of week and event calendar</strong></td><td>Whether crowding happens on regular nights or only around races and events. That decides between a bigger room and better scheduling.</td><td>Club calendar and point-of-sale</td></tr>
+        <tr><td><span class="pill warn">Medium</span></td><td><strong>Member survey</strong>: how often members would dine with more space, and what keeps them away (distance, traffic, hours, menu, parking)</td><td>Demand that attendance records can't show, from members who don't come today.</td><td>Short online survey to all memberships</td></tr>
+        <tr><td><span class="pill ok">Lower</span></td><td><strong>Join dates and household size</strong> per membership</td><td>Whether new memberships are closer to or farther from the club, and how many people each membership represents.</td><td>Membership database</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <h3 style="margin-top:22px">Analysis these data would enable</h3>
+  <ul class="nextlist">
+    <li><strong>A calibrated demand model:</strong> fit the dinner rate and drop-off to real attendance by drive-time band, so the covers estimate is measured rather than assumed.</li>
+    <li><strong>A break-even and payback estimate:</strong> added covers × average check × margin, compared with the expansion cost.</li>
+    <li><strong>A map of regular diners:</strong> where frequent Galley users live compared with all memberships, aggregated to protect privacy as on this page.</li>
+    <li><strong>Dinner-hour drive times:</strong> traffic-aware routing for a typical 6 pm weekday arrival, instead of the no-traffic times used here.</li>
+    <li><strong>Richer spatial layers:</strong> for example Google Earth Engine surfaces combining drive time, membership density and attendance on one map.</li>
+  </ul>
+</section>
+
+<section id="method" class="method">
+  <h2>Methodology</h2>
+  <h3>1. Membership data</h3>
+  <ul>
+    <li>The source is the club's roster of <strong>active Regular and Associate memberships</strong>. Each row is one membership, which may cover a household. Only three fields are used: zip code, the age on the membership, and membership type. No names, street addresses or contact details are processed.</li>
+    <li>ZIP+4 codes (e.g. 94510-1234) are shortened to 5 digits. PO-box-only zips have no Census boundary, so each is assigned to the zip that contains its post office (e.g. 94807 → 94801 Richmond).</li>
+    <li>Ages that are blank or under 18 are treated as not recorded and left out of all age statistics; one record had an age of 0. Those memberships still count everywhere else.</li>
+  </ul>
+  <h3>2. Drive time and distance</h3>
+  <ul>
+    <li><strong>Per-zip drive time and road distance</strong> come from the openrouteservice Matrix API, using the driving-car profile on the OpenStreetMap road network. Each route runs from the clubhouse to a <em>representative point</em> of the zip: a point guaranteed to be inside the zip's boundary, unlike a geometric centroid, which can land in the Bay.</li>
+    <li>Zips are placed in bands by routed time: 0–15, 15–30, 30–45, 45–60, or more than 60 minutes. Upper limits are inclusive, so a 15.0-minute zip is in the 0–15 band. <span id="fallbackNote"></span></li>
+    <li><strong>The drive-time rings on Map 1</strong> are built from the same routed zip times. For each band, all zips within that time are merged into one area, and small gaps are closed (0.8 km buffer) so the outline reads cleanly. A zip inside the "15 min" ring is therefore exactly a zip in the 0–15 minute band. openrouteservice isochrones set the study-area extent and are the backup method for any zip that can't be routed.</li>
+    <li>Travel times assume typical free-flow speeds with <strong>no live traffic</strong>. The traffic factor in the demand model shows how sensitive the results are to congestion.</li>
+  </ul>
+  <h3>3. Geography and cartography</h3>
+  <ul>
+    <li>Zip boundaries are 2020 Census ZCTAs (Zip Code Tabulation Areas), which approximate USPS zip codes. Counties are 2020 Census boundaries, assigned by each zip's representative point.</li>
+    <li>Area calculations use NAD83 / California Albers (EPSG:3310), an equal-area projection. The maps are displayed in Web Mercator (EPSG:3857), as usual for web maps; north is up everywhere.</li>
+    <li>Boundaries are simplified to a 40 m tolerance so the page loads quickly. Map 1 shades each zip by its membership count in five classes (1, 2–4, 5–9, 10–19, 20 or more). The classes were picked by hand so most zips, which have only a few memberships, still show up next to the club's own zip, which has 102.</li>
+  </ul>
+  <h3>4. Privacy</h3>
+  <ul>
+    <li>Only aggregated counts are published. For any zip with <strong>fewer than <span class="minCell">5</span> memberships</strong>, the median age and Regular/Associate split are hidden, so no individual's age can be worked out. The membership count itself is still shown.</li>
+    <li>In the age chart, any cell with fewer than <span class="minCell">5</span> memberships is also hidden.</li>
+    <li>The raw roster never leaves the analyst's computer and is not part of the published site or code repository.</li>
+  </ul>
+  <h3>5. Demand model</h3>
+  <ul>
+    <li>A banded distance-decay model: attendance likelihood falls by a fixed share with each 15-minute band, a simplified form of the Huff and gravity models used in retail site selection. The inputs are assumptions, not measurements, until they are fitted to real Galley attendance.</li>
+  </ul>
+  <h3>6. Limitations</h3>
+  <ul>
+    <li>A zip's memberships are treated as living at one point, so large rural zips are the least precise.</li>
+    <li>Drive times assume no traffic, and the demand model's inputs are placeholders. See <a href="#next" style="color:var(--link)">Next steps</a> for the data that would replace these assumptions with measurements.</li>
+  </ul>
+
+  <h2 style="margin-top:36px">Sources</h2>
+  <ol class="sources">
+    <li><strong>Richmond Yacht Club</strong>: roster export of active Regular and Associate memberships (zip code, age, membership type), <span id="srcDate"></span>. Private; published only in aggregated form.</li>
+    <li><strong>U.S. Census Bureau</strong>: 2020 Cartographic Boundary Files, ZIP Code Tabulation Areas (cb_2020_us_zcta520_500k) and Counties (cb_2020_us_county_500k). <a href="https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html">census.gov</a></li>
+    <li><strong>openrouteservice (HeiGIT, Heidelberg University)</strong>: Matrix API (per-zip drive time and road distance) and Isochrones API (study-area extent and backup banding), driving-car profile. <a href="https://openrouteservice.org">openrouteservice.org</a></li>
+    <li><strong>OpenStreetMap contributors</strong>: the road network behind all routing, licensed under ODbL. <a href="https://www.openstreetmap.org/copyright">openstreetmap.org/copyright</a></li>
+    <li><strong>Nominatim (OpenStreetMap)</strong>: geocoding of the clubhouse address. <a href="https://nominatim.org">nominatim.org</a></li>
+    <li><strong>Esri</strong>: World Dark Gray Canvas basemap (sources: Esri, HERE, Garmin, © OpenStreetMap contributors). <a href="https://www.arcgis.com/home/item.html?id=291da5eab3a0412593b66d384379f89f">arcgis.com</a></li>
+    <li><strong>Software</strong>: Python with GeoPandas, Shapely and pygris (processing); Leaflet (maps); Chart.js (charts). The code is in the project repository.</li>
+  </ol>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">Analysis &amp; cartography: Cameron Gibson, MS GIS · Prepared for the Richmond Yacht Club Board of Directors · <span id="footDate"></span></div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = (n) => Math.round(n).toLocaleString("en-US");
+const pct = (x, d = 0) => (x * 100).toFixed(d) + "%";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const dark = true;
+const BASEMAP = `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_${dark ? "Dark" : "Light"}_Gray_Base/MapServer/tile/{z}/{y}/{x}`;
+const BASEMAP_ATTR = "Esri, HERE, Garmin, © OpenStreetMap contributors";
+
+Promise.all([
+  fetch("data/summary.json", { cache: "no-cache" }).then((r) => r.json()),
+  fetch("data/zips.geojson", { cache: "no-cache" }).then((r) => r.json()),
+  fetch("data/rings.geojson", { cache: "no-cache" }).then((r) => r.json()),
+]).then(([S, zips, rings]) => {
+  const T = S.totals, B = S.bands, Q = S.data_quality, MIN = S.min_cell_size;
+  const bandColor = (b) => css(`--band-${b}`);
+  const bandLabel = Object.fromEntries(B.map((b) => [b.band, b.label]));
+  const Z = zips.features.map((f) => f.properties);
+
+  const niceDate = new Date(S.generated + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  $("#meta").textContent = `Data as of ${niceDate} · ${fmt(T.all_memberships)} active memberships · routed drive times via openrouteservice`;
+  $("#srcDate").textContent = `received and processed ${niceDate}`;
+  $("#footDate").textContent = `Draft of ${niceDate}`;
+  document.querySelectorAll(".minCell").forEach((e) => (e.textContent = MIN));
+  $("#fallbackNote").textContent = Q.zips_isochrone_fallback
+    ? `${Q.zips_isochrone_fallback} zip with memberships couldn't be routed and was banded by how much of it lies inside each isochrone (at least 25% of its area).` : "";
+
+  // ---------- KPIs
+  const c = (i) => B[i].cumulative, cs = (i) => B[i].cumulative_share;
+  $("#kpis").innerHTML = [
+    ["Within 15 min", c(0), `${pct(cs(0))} of memberships`],
+    ["Within 30 min", c(1), `${pct(cs(1))} of memberships`],
+    ["Within 60 min", c(3), `${pct(cs(3))} of memberships`],
+    ["More than 60 min or out of state", T.ca_beyond_60 + T.out_of_state, `${fmt(T.ca_beyond_60)} in CA · ${fmt(T.out_of_state)} out of state`],
+  ].map(([l, v, n]) => `<div class="card kpi"><div class="label">${l}</div><div class="value">${fmt(v)}</div><div class="note">${n}</div></div>`).join("");
+  const top = S.top_zips[0];
+  $("#finding").innerHTML = `<strong>Initial read:</strong> nearly half of all memberships (${fmt(c(1))}, ${pct(cs(1))}) are within a 30-minute drive of the club, a strong local base for a dinner program. The biggest concentration is the club's own zip code, ${top.zip_code} (Point Richmond), with ${fmt(top.memberships)} memberships about ${Math.round(top.drive_min)} minutes away. About ${pct(1 - cs(3))} of memberships are more than an hour away or out of state and are unlikely regular diners.`;
+
+  // ---------- Shared cartographic furniture
+  const NORTH_SVG = `<svg width="26" height="40" viewBox="0 0 26 40" aria-label="North arrow">
+      <text x="13" y="11" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="${css("--ink")}">N</text>
+      <polygon points="13,14 20,36 13,31 6,36" fill="${css("--ink")}"/>
+      <polygon points="13,14 13,31 6,36" fill="${css("--surface")}" stroke="${css("--ink")}" stroke-width="1"/></svg>`;
+  const clubIcon = L.divIcon({ className: "", iconSize: [22, 22], iconAnchor: [11, 11],
+    html: `<div style="width:22px;height:22px;border-radius:50%;background:${css("--gold")};border:2px solid ${css("--bg")};box-shadow:0 1px 5px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;color:${css("--bg")};font-size:11px;font-weight:700">⚓</div>` });
+  const HILITE = { weight: 2.5, color: "#ffffff", opacity: 1 };
+  const extent = L.geoJSON(rings).getBounds();
+  const layers = { 1: {}, 2: {} };
+
+  function makeMap(n, legendHtml) {
+    const id = "map" + n;
+    const map = L.map(id, { scrollWheelZoom: false, zoomSnap: 0.25 });
+    map.fitBounds(extent, { padding: [8, 8] });
+    L.tileLayer(BASEMAP, { attribution: BASEMAP_ATTR, maxZoom: 16 }).addTo(map);
+    const north = L.control({ position: "topright" });
+    north.onAdd = () => Object.assign(L.DomUtil.create("div", "north"), { innerHTML: NORTH_SVG, title: "North is up" });
+    north.addTo(map);
+    L.control.scale({ position: "bottomleft", imperial: true, metric: false, maxWidth: 140 }).addTo(map);
+    const legend = L.control({ position: "bottomright" });
+    legend.onAdd = () => Object.assign(L.DomUtil.create("div", "legend legend-in"), { innerHTML: legendHtml });
+    legend.addTo(map);
+    const out = document.createElement("div");
+    out.className = "legend legend-out";
+    out.innerHTML = legendHtml;
+    document.getElementById(id).after(out);
+    layers[n].club = L.marker([S.club.lat, S.club.lon], { icon: clubIcon, zIndexOffset: 1000, keyboard: false })
+      .bindTooltip("<b>Richmond Yacht Club</b><br>351 Brickyard Cove Rd", { className: "zt" }).addTo(map);
+    layers[n].map = map;
+    return map;
+  }
+  const driveText = (p) => p.drive_min != null
+    ? `${p.drive_min.toFixed(0)} min drive · ${p.distance_mi.toFixed(1)} road mi` : "Drive time: not routed";
+  const ageText = (p) => {
+    if (!p.memberships) return "";
+    if (p.age_note === "suppressed") return `<span class="muted">Age and type hidden for privacy (fewer than ${MIN} memberships)</span>`;
+    if (p.age_note === "insufficient" || p.median_age == null) return `<span class="muted">Median age: too few ages on record</span>`;
+    return `Median age: ${p.median_age} · ${p.regular} Regular / ${p.associate} Associate`;
+  };
+  const tip = (p) => [
+    `<b>${esc(p.zip_code)}</b> · ${esc(p.county || "")} County`,
+    `Memberships: <b>${fmt(p.memberships)}</b>`,
+    driveText(p) + (p.band ? ` (${bandLabel[p.band]} band)` : " (more than 60 min)"),
+    ageText(p),
+  ].filter(Boolean).join("<br>");
+  // Hover outlines just the zip under the cursor; the layer's own style function restores it.
+  const zipLayer = (styleFn) => {
+    const layer = L.geoJSON(zips, {
+      style: styleFn,
+      onEachFeature: (f, l) => {
+        l.bindTooltip(tip(f.properties), { sticky: true, className: "zt", direction: "auto" });
+        l.on("mouseover", () => { l.setStyle(HILITE); l.bringToFront(); });
+        l.on("mouseout", () => layer.resetStyle(l));
+      },
+    });
+    return layer;
+  };
+  const sourceLine = "Sources: RYC membership roster (aggregated); U.S. Census Bureau 2020 ZCTA &amp; county boundaries; openrouteservice / © OpenStreetMap contributors; basemap Esri Dark Gray Canvas. Projection: Web Mercator. Drive times assume no traffic.";
+  $("#src1").innerHTML = sourceLine;
+  $("#src2").innerHTML = sourceLine;
+
+  // ---------- Map 1: memberships per zip (classed choropleth) + labeled drive-time rings
+  const M_CLASSES = [[1, "1"], [2, "2–4"], [5, "5–9"], [10, "10–19"], [20, "20 or more"]];
+  const M_COLORS = ["#1f4f78", "#2e79a6", "#4ea4cf", "#8fcbe8", "#e0f3ff"];
+  const mClass = (n) => { let k = -1; M_CLASSES.forEach(([lo], i) => { if (n >= lo) k = i; }); return k; };
+  const lg1 = `<div class="lt">Memberships per zip code</div><div class="lu">Count of memberships</div>
+    ${M_CLASSES.map(([, l], i) => `<div class="row"><i class="sw" style="background:${M_COLORS[i]}"></i>${l}</div>`).join("")}
+    <div class="row"><i class="sw" style="background:transparent;border:1px solid ${css("--ink-3")};opacity:.5"></i>None</div>
+    <hr><div class="lt">Drive time from clubhouse</div><div class="lu">Minutes, no traffic</div>
+    ${B.map((b) => `<div class="row"><i class="linesw" style="border-color:${bandColor(b.band)}"></i>${b.band} min</div>`).join("")}`;
+  const map1 = makeMap(1, lg1);
+  const zStyle1 = (f) => {
+    const k = mClass(f.properties.memberships);
+    return k < 0 ? { fillOpacity: 0, color: css("--ink-3"), weight: 0.4, opacity: 0.15 }
+                 : { fillColor: M_COLORS[k], fillOpacity: 0.85, color: "#dce6f0", weight: 0.5, opacity: 0.35 };
+  };
+  layers[1].zips = zipLayer(zStyle1).addTo(map1);
+  // Rings drawn largest first so each smaller ring's line sits on top of the shared edge.
+  const ringLines = L.geoJSON({ ...rings, features: [...rings.features].sort((a, b) => b.properties.minutes - a.properties.minutes) },
+    { interactive: false, style: (f) => ({ fill: false, color: bandColor(f.properties.minutes), weight: 2.4, opacity: 1 }) });
+  // Direct labels at each ring's northernmost point.
+  const northmost = (geom) => {
+    const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+    let best = null;
+    polys.forEach((poly) => poly[0].forEach(([x, y]) => { if (!best || y > best[1]) best = [x, y]; }));
+    return best;
+  };
+  const ringLabels = rings.features.map((f) => {
+    const [x, y] = northmost(f.geometry), c = bandColor(f.properties.minutes);
+    return L.marker([y, x], { interactive: false, keyboard: false, icon: L.divIcon({ className: "", iconSize: null,
+      html: `<div style="transform:translate(-50%,-50%);white-space:nowrap;background:${css("--bg")};color:${c};border:1.5px solid ${c};border-radius:999px;padding:1px 8px;font:700 11px Inter,sans-serif">${f.properties.minutes} min</div>` }) });
+  });
+  layers[1].rings = L.layerGroup([ringLines, ...ringLabels]).addTo(map1);
+
+  // ---------- Map 2: zips with memberships, colored by drive-time band
+  const map2Legend = `<div class="lt">Drive time to clubhouse</div><div class="lu">Routed minutes, no traffic · zips with ≥1 membership</div>
+    ${B.map((b) => `<div class="row"><i class="sw" style="background:${bandColor(b.band)}"></i>${b.label}</div>`).join("")}
+    <div class="row"><i class="sw" style="background:repeating-linear-gradient(45deg,${css("--ink-3")} 0 1px,transparent 1px 5px)"></i>More than 60 min</div>
+    <hr><div class="row"><i class="sw" style="background:transparent;border:1px solid ${css("--ink-3")};opacity:.5"></i>No memberships</div>`;
+  const map2 = makeMap(2, map2Legend);
+  const zipsVisible2 = () => $('[data-map="2"][data-layer="zips"]').checked;
+  const zStyle2 = (f) => {
+    const p = f.properties, edge = zipsVisible2();
+    if (!(p.memberships > 0)) return { fillColor: css("--ink-3"), fillOpacity: 0.03, color: css("--ink-3"), weight: 0.4, opacity: edge ? 0.2 : 0 };
+    if (!p.band) return { fillColor: "url(#hatch)", fillOpacity: 0.5, color: css("--ink-3"), weight: 0.5, opacity: edge ? 0.5 : 0 };
+    return { fillColor: bandColor(p.band), fillOpacity: 0.78, color: "#dce6f0", weight: 0.5, opacity: edge ? 0.4 : 0 };
+  };
+  layers[2].zips = zipLayer(zStyle2).addTo(map2);
+  const svg = map2.getPanes().overlayPane.querySelector("svg");
+  if (svg) svg.insertAdjacentHTML("afterbegin", `<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="${css("--ink-3")}" stroke-width="1" stroke-opacity=".7"/></pattern></defs>`);
+
+  // ---------- Map toggles
+  document.querySelectorAll(".maptools input").forEach((cb) => cb.addEventListener("change", () => {
+    const L_ = layers[cb.dataset.map], name = cb.dataset.layer;
+    if (name === "zips") L_.zips.setStyle(zStyle2);
+    else cb.checked ? L_[name].addTo(L_.map) : L_.map.removeLayer(L_[name]);
+  }));
+
+  // ---------- Charts
+  Chart.defaults.font.family = "Inter, sans-serif";
+  Chart.defaults.font.size = 12;
+  Chart.defaults.color = css("--ink-2");
+  Chart.defaults.borderColor = css("--grid");
+  Chart.defaults.plugins.legend.display = false;
+  Chart.defaults.maintainAspectRatio = false;
+  Object.assign(Chart.defaults.plugins.tooltip, { backgroundColor: css("--surface"), titleColor: css("--ink"), bodyColor: css("--ink-2"), borderColor: css("--border"), borderWidth: 1, padding: 10, cornerRadius: 8 });
+  const axisTitle = (text) => ({ display: true, text, color: css("--ink-2"), font: { weight: 600 } });
+  const barRadius = { topLeft: 4, topRight: 4 };
+
+  // Capture curve
+  const routed = Z.filter((p) => p.memberships > 0 && p.drive_min != null).sort((a, b) => a.drive_min - b.drive_min);
+  const pts = [{ x: 0, y: 0 }]; let cum = 0;
+  routed.forEach((p) => { if (p.drive_min <= 90) { cum += p.memberships; pts.push({ x: p.drive_min, y: (100 * cum) / T.all_memberships }); } });
+  pts.push({ x: 90, y: pts.at(-1).y });
+  new Chart($("#cCapture"), {
+    type: "line",
+    data: { datasets: [{ data: pts, stepped: true, borderColor: css("--link"), borderWidth: 2, pointRadius: 0, fill: { target: "origin" }, backgroundColor: "rgba(156,195,230,.12)" },
+      { data: B.map((b) => ({ x: b.band, y: 100 * b.cumulative_share })), type: "scatter", pointRadius: 5, pointBackgroundColor: css("--gold"), pointBorderColor: css("--surface"), pointBorderWidth: 2 }] },
+    options: { parsing: false,
+      scales: { x: { type: "linear", min: 0, max: 90, ticks: { stepSize: 15 }, title: axisTitle("Drive time from clubhouse (minutes)") },
+                y: { min: 0, max: 100, ticks: { callback: (v) => v + "%" }, title: axisTitle("Cumulative share of all memberships") } },
+      plugins: { tooltip: { callbacks: { title: (i) => `Within ${Math.round(i[0].parsed.x)} min`, label: (i) => `${i.parsed.y.toFixed(0)}% of memberships` } } } },
+  });
+  $("#nCapture").textContent = `Gold dots mark the 15/30/45/60-minute band edges. The line tops out below 100% because ${fmt(T.ca_beyond_60 + T.out_of_state)} memberships are farther away or out of state.`;
+
+  // Bands stacked
+  new Chart($("#cBands"), {
+    type: "bar",
+    data: { labels: B.map((b) => b.label), datasets: [
+      { label: "Regular", data: B.map((b) => b.regular), backgroundColor: css("--s-reg"), borderColor: css("--surface"), borderWidth: { top: 2 }, borderRadius: 0, maxBarThickness: 64 },
+      { label: "Associate", data: B.map((b) => b.associate), backgroundColor: css("--s-assoc"), borderColor: css("--surface"), borderWidth: { bottom: 2 }, borderRadius: barRadius, borderSkipped: false, maxBarThickness: 64 }] },
+    options: { scales: { x: { stacked: true, grid: { display: false }, title: axisTitle("Drive-time band") },
+                         y: { stacked: true, beginAtZero: true, title: axisTitle("Memberships") } },
+      plugins: { tooltip: { mode: "index", intersect: false, callbacks: { footer: (i) => `Total: ${i.reduce((a, b) => a + b.parsed.y, 0)}` } } } },
+  });
+
+  // Scatter drive time vs distance
+  const maxM = Math.max(...Z.map((p) => p.memberships));
+  const sc = Z.filter((p) => p.memberships > 0 && p.drive_min != null && p.drive_min <= 90);
+  new Chart($("#cScatter"), {
+    type: "bubble",
+    data: { datasets: [{ data: sc.map((p) => ({ x: p.distance_mi, y: p.drive_min, r: 3 + 11 * Math.sqrt(p.memberships / maxM), zip: p.zip_code, m: p.memberships, county: p.county })),
+      backgroundColor: sc.map((p) => (p.band ? bandColor(p.band) : css("--ink-3")) + "cc"), borderColor: css("--surface"), borderWidth: 1 }] },
+    options: { parsing: true,
+      scales: { x: { beginAtZero: true, title: axisTitle("Road distance (miles)") }, y: { beginAtZero: true, title: axisTitle("Drive time (minutes)") } },
+      plugins: { tooltip: { callbacks: { label: (i) => { const d = i.raw; return [`${d.zip} · ${d.county}`, `${d.m} memberships`, `${d.y.toFixed(0)} min · ${d.x.toFixed(1)} mi`]; } } } } },
+  });
+
+  // County
+  new Chart($("#cCounty"), {
+    type: "bar",
+    data: { labels: S.counties.map((c) => c.county), datasets: [{ data: S.counties.map((c) => c.memberships), backgroundColor: css("--link"), borderRadius: { topRight: 4, bottomRight: 4 }, borderSkipped: false, maxBarThickness: 26 }] },
+    options: { indexAxis: "y", scales: { x: { beginAtZero: true, title: axisTitle("Memberships within 60 min") }, y: { grid: { display: false } } },
+      plugins: { tooltip: { callbacks: { label: (i) => `${i.parsed.x} memberships (${pct(i.parsed.x / T.within_60)} of those within 60 min)` } } } },
+  });
+
+  // Age mix
+  const ageGroups = [...new Set(S.age_mix.map((a) => a.age_group))];
+  const reaches = [["Within 30 min", "--r-near"], ["30–60 min", "--r-mid"], ["Beyond 60 min", "--r-far"]];
+  const cell = (ag, r) => S.age_mix.find((a) => a.age_group === ag && a.reach === r)?.memberships ?? null;
+  new Chart($("#cAge"), {
+    type: "bar",
+    data: { labels: ageGroups, datasets: reaches.map(([r, v]) => ({ label: r === "Beyond 60 min" ? "More than 60 min or out of state" : r, data: ageGroups.map((ag) => cell(ag, r)),
+      backgroundColor: css(v), borderRadius: barRadius, maxBarThickness: 34, borderColor: css("--surface"), borderWidth: 1 })) },
+    options: { scales: { x: { grid: { display: false }, title: axisTitle("Age on membership record") }, y: { beginAtZero: true, title: axisTitle("Memberships") } },
+      plugins: { tooltip: { mode: "index", intersect: false, callbacks: { label: (i) => `${i.dataset.label}: ${i.raw == null ? `hidden (fewer than ${MIN})` : i.raw}` } } } },
+  });
+  const hidden = S.age_mix.filter((a) => a.memberships == null).length;
+  $("#nAge").textContent = `${hidden ? `${hidden} group(s) with fewer than ${MIN} memberships are hidden for privacy (no bar). ` : ""}${Q.age_missing + Q.age_invalid} memberships have no valid age on record and appear under "Not recorded".`;
+
+  // ---------- Demand model
+  const edges = [0, ...B.map((b) => b.band)];
+  const redistribute = (k) => B.map((_, j) => {
+    const [c0, c1] = [edges[j], edges[j + 1]];
+    return B.reduce((sum, b, i) => {
+      const [a, z] = [edges[i] * k, edges[i + 1] * k];
+      return sum + b.memberships * Math.max(0, Math.min(z, c1) - Math.max(a, c0)) / (z - a);
+    }, 0);
+  });
+  const ids = ["base", "decay", "party", "traffic", "growth"];
+  const outFmt = { base: (v) => v + "%", decay: (v) => v + "%", party: (v) => (+v).toFixed(1), traffic: (v) => (+v).toFixed(2) + "×", growth: (v) => (v > 0 ? "+" : "") + v + "%" };
+  const run = () => {
+    const v = Object.fromEntries(ids.map((id) => [id, +$("#" + id).value]));
+    ids.forEach((id) => ($("#o-" + id).textContent = outFmt[id]($("#" + id).value)));
+    const seats = Math.max(1, +$("#seats").value || 1);
+    const ms = redistribute(v.traffic).map((m) => m * (1 + v.growth / 100));
+    const perBand = ms.map((m, i) => m * (v.base / 100) * Math.pow(1 - v.decay / 100, i) * v.party);
+    const covers = perBand.reduce((a, b) => a + b, 0), util = covers / seats;
+    $("#covers").textContent = Math.round(covers);
+    const [cls, label] = util > 1 ? ["over", "Over capacity"] : util > 0.85 ? ["warn", "Near capacity"] : ["ok", "Within capacity"];
+    $("#util").innerHTML = `<span class="pill ${cls}">${label} · ${pct(util)} of ${seats} seats</span>`;
+    $("#utilText").textContent = `From ${fmt(ms.reduce((a, b) => a + b, 0))} memberships within 60 minutes under these assumptions.`;
+    const mx = Math.max(...perBand, 0.001);
+    $("#coverBars").innerHTML = perBand.map((p, i) => `
+      <div class="bar-row"><div class="top"><span><i class="sw" style="background:${bandColor(B[i].band)};display:inline-block;vertical-align:-2px;margin-right:6px"></i>${B[i].label}</span>
+      <span>${p.toFixed(1)} diners · ${fmt(ms[i])} memberships</span></div>
+      <div class="track"><div class="fill" style="width:${(p / mx) * 100}%;background:${bandColor(B[i].band)}"></div></div></div>`).join("");
+  };
+  [...ids, "seats"].forEach((id) => $("#" + id).addEventListener("input", run));
+  run();
+
+  // ---------- Tables
+  $("#zipTable tbody").innerHTML = S.top_zips.map((z) =>
+    `<tr><td>${esc(z.zip_code)}</td><td>${esc(z.county)}</td><td class="num">${z.drive_min != null ? Math.round(z.drive_min) : "—"}</td><td class="num">${z.distance_mi != null ? z.distance_mi.toFixed(1) : "—"}</td><td class="num">${fmt(z.memberships)}</td></tr>`).join("");
+  $("#zipNote").textContent = `Only zips with at least ${MIN} memberships are listed. ${fmt(Q.memberships_in_suppressed_zips)} memberships are in ${fmt(Q.zips_suppressed)} smaller zips, which are counted in every total and shown on the maps.`;
+  $("#profileTable tbody").innerHTML = B.map((b) =>
+    `<tr><td>${b.label}</td><td class="num">${fmt(b.memberships)}</td><td class="num">${b.median_age ?? "—"}</td><td class="num">${b.share_70_plus != null ? b.share_70_plus.toFixed(0) + "%" : "—"}</td></tr>`).join("");
+  $("#countyTable tbody").innerHTML = S.counties.map((c) =>
+    `<tr><td>${esc(c.county)}</td><td class="num">${fmt(c.memberships)}</td><td class="num">${pct(c.memberships / T.within_60)}</td></tr>`).join("");
+
+  // ---------- Data notes
+  const dq = [
+    [Q.zips_suppressed, "zip codes with detail hidden for privacy", `These zips have fewer than ${MIN} memberships each (${fmt(Q.memberships_in_suppressed_zips)} memberships in total). Their median age and Regular/Associate split are hidden; their counts are still shown and included in every total.`],
+    [Q.age_missing + Q.age_invalid, "memberships with no valid age", `${Q.age_missing} have a blank age and ${Q.age_invalid} has an invalid age (under 18, e.g. 0). They are left out of age statistics and shown as "Not recorded" in the age chart, but counted everywhere else.`],
+    [T.out_of_state, "out-of-state memberships", "Counted in the total of all memberships and in the percentages, but not mapped. None are within driving range for dinner."],
+    [Q.po_box_remapped, "PO-box zip codes reassigned", "PO-box-only zips have no Census boundary, so each was placed in the zip that contains its post office."],
+    [Q.zip_plus4_normalized, "ZIP+4 codes shortened", "Nine-digit ZIP+4 codes were shortened to 5 digits so they match Census zip boundaries."],
+    [Q.zips_isochrone_fallback, "zip(s) not routable", "A route couldn't be found to this zip, so it was assigned a band from the drive-time rings instead (see Methodology)."],
+  ];
+  $("#dq").innerHTML = dq.map(([n, t, d]) => `<div class="card dq"><div class="n">${fmt(n)}</div><div class="t"><strong>${t}</strong></div><p class="caveat" style="margin-top:6px">${d}</p></div>`).join("");
+}).catch((err) => {
+  $("#meta").textContent = "Could not load data. Serve this folder over HTTP (e.g. python -m http.server) rather than opening the file directly.";
+  console.error(err);
+});
+</script>
+</body>
+</html>
