@@ -159,12 +159,12 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
     <div class="titleblock">
       <div class="fignum">Map 1</div>
       <h3>Where RYC memberships are concentrated</h3>
-      <p class="reads"><strong>How to read it:</strong> each zip code is shaded by how many RYC memberships it has. The darker the blue, the more memberships; unshaded areas have none. The colored drive-time rings show how far you can drive from the clubhouse in 15, 30, 45 and 60 minutes. Use the "Zips within" boxes to show only certain drive-time zones, for example just the zips within 15 minutes; the count below the boxes updates to match.</p>
+      <p class="reads"><strong>How to read it:</strong> each zip code is shaded by how many RYC memberships it has. The darker the blue, the more memberships; hatched gray zips have none. The colored drive-time rings show how far you can drive from the clubhouse in 15, 30, 45 and 60 minutes. Use the "Drive-time rings" boxes to choose which rings to draw, and the "Zips within" boxes to show only certain drive-time zones, for example just the zips within 15 minutes; the count below the boxes updates to match.</p>
     </div>
     <div class="maptools"><span class="lbl">Show:</span>
-      <label><input type="checkbox" data-map="1" data-layer="rings" checked>Drive-time rings</label>
       <label><input type="checkbox" data-map="1" data-layer="club" checked>Clubhouse marker</label>
     </div>
+    <div class="maptools" id="ringTools"><span class="lbl">Drive-time rings:</span></div>
     <div class="maptools" id="bandTools"><span class="lbl">Zips within:</span></div>
     <div class="maptools bandcount" id="bandCount"></div>
     <div class="map" id="map1" role="img" aria-label="Map of memberships per zip code with labeled drive-time rings"></div>
@@ -477,13 +477,13 @@ Promise.all([
   const mClass = (n) => { let k = -1; M_CLASSES.forEach(([lo], i) => { if (n >= lo) k = i; }); return k; };
   const lg1 = `<div class="lt">Memberships per zip code</div><div class="lu">Count of memberships</div>
     ${M_CLASSES.map(([, l], i) => `<div class="row"><i class="sw" style="background:${M_COLORS[i]}"></i>${l}</div>`).join("")}
-    <div class="row"><i class="sw" style="background:transparent;border:1px solid ${css("--ink-3")};opacity:.5"></i>None</div>
+    <div class="row"><i class="sw" style="background:repeating-linear-gradient(45deg,${css("--ink-3")} 0 1px,transparent 1px 5px)"></i>No memberships</div>
     <hr><div class="lt">Drive time from clubhouse</div><div class="lu">Minutes, no traffic</div>
     ${B.map((b) => `<div class="row"><i class="linesw" style="border-color:${bandColor(b.band)}"></i>${b.band} min</div>`).join("")}`;
   const map1 = makeMap(1, lg1);
   const zStyle1 = (f) => {
     const k = mClass(f.properties.memberships);
-    return k < 0 ? { fillOpacity: 0, color: "#6b7c90", weight: 0.4, opacity: 0.3 }
+    return k < 0 ? { fillColor: "url(#hatch1)", fillOpacity: 0.7, color: "#6b7c90", weight: 0.4, opacity: 0.4 }
                  : { fillColor: M_COLORS[k], fillOpacity: 0.85, color: "#ffffff", weight: 0.6, opacity: 0.8 };
   };
   // Drive-time zone filter: each checkbox shows/hides the zips in one band.
@@ -492,11 +492,38 @@ Promise.all([
     `<label><input type="checkbox" data-zone="${k}" checked><i class="sw" style="background:${c}"></i>${l}</label>`).join(""));
   const zoneOf = (p) => (p.band ? String(p.band) : "far");
   const zoneOn = () => new Set([...document.querySelectorAll("[data-zone]")].filter((c) => c.checked).map((c) => c.dataset.zone));
+  // Drive-time rings: one group (dark casing + colored line + label) per ring, each with its own checkbox.
+  const northmost = (geom) => {
+    const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+    let best = null;
+    polys.forEach((poly) => poly[0].forEach(([x, y]) => { if (!best || y > best[1]) best = [x, y]; }));
+    return best;
+  };
+  const ringGroups = Object.fromEntries(rings.features.map((f) => {
+    const m = f.properties.minutes, c = bandColor(m), [x, y] = northmost(f.geometry);
+    return [m, L.layerGroup([
+      L.geoJSON(f, { interactive: false, style: () => ({ fill: false, color: "#16202b", weight: 4.6, opacity: 0.55 }) }),
+      L.geoJSON(f, { interactive: false, style: () => ({ fill: false, color: c, weight: 2.6, opacity: 1 }) }),
+      L.marker([y, x], { interactive: false, keyboard: false, icon: L.divIcon({ className: "", iconSize: null,
+        html: `<div style="transform:translate(-50%,-50%);white-space:nowrap;background:${css("--bg")};color:${c};border:1.5px solid ${c};border-radius:999px;padding:1px 8px;font:700 11px Inter,sans-serif">${m} min</div>` }) }),
+    ])];
+  }));
+  // Keep rings above the zips, largest first so each smaller ring's line sits on top of a shared edge.
+  const raiseRings = () => Object.keys(ringGroups).map(Number).sort((a, b) => b - a)
+    .forEach((m) => map1.hasLayer(ringGroups[m]) && ringGroups[m].eachLayer((l) => l.bringToFront && l.bringToFront()));
+  $("#ringTools").insertAdjacentHTML("beforeend", B.map((b) =>
+    `<label><input type="checkbox" data-ring="${b.band}" checked><i class="linesw" style="border-color:${bandColor(b.band)}"></i>${b.band} min</label>`).join(""));
+  document.querySelectorAll("[data-ring]").forEach((cb) => cb.addEventListener("change", () => {
+    const g = ringGroups[cb.dataset.ring];
+    cb.checked ? g.addTo(map1) : map1.removeLayer(g);
+    raiseRings();
+  }));
+
   const drawZips1 = () => {
     const on = zoneOn();
     if (layers[1].zips) map1.removeLayer(layers[1].zips);
     layers[1].zips = zipLayer(zStyle1, (p) => on.has(zoneOf(p))).addTo(map1);
-    if (map1.hasLayer(layers[1].rings || L.layerGroup())) layers[1].rings.eachLayer((l) => l.bringToFront && l.bringToFront());
+    raiseRings();
     const shown = Z.filter((p) => p.memberships > 0 && on.has(zoneOf(p)));
     const n = shown.reduce((a, p) => a + p.memberships, 0);
     $("#bandCount").innerHTML = `Showing <b>${fmt(n)}</b> memberships in <b>${fmt(shown.length)}</b> zip codes (${pct(n / T.all_memberships)} of all memberships)` +
@@ -504,24 +531,10 @@ Promise.all([
   };
   document.querySelectorAll("[data-zone]").forEach((cb) => cb.addEventListener("change", drawZips1));
   drawZips1();
-  // Rings drawn largest first so each smaller ring's line sits on top of the shared edge.
-  const ringsSorted = { ...rings, features: [...rings.features].sort((a, b) => b.properties.minutes - a.properties.minutes) };
-  const ringCasing = L.geoJSON(ringsSorted, { interactive: false, style: () => ({ fill: false, color: "#16202b", weight: 4.6, opacity: 0.55 }) });
-  const ringLines = L.geoJSON(ringsSorted,
-    { interactive: false, style: (f) => ({ fill: false, color: bandColor(f.properties.minutes), weight: 2.6, opacity: 1 }) });
-  // Direct labels at each ring's northernmost point.
-  const northmost = (geom) => {
-    const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
-    let best = null;
-    polys.forEach((poly) => poly[0].forEach(([x, y]) => { if (!best || y > best[1]) best = [x, y]; }));
-    return best;
-  };
-  const ringLabels = rings.features.map((f) => {
-    const [x, y] = northmost(f.geometry), c = bandColor(f.properties.minutes);
-    return L.marker([y, x], { interactive: false, keyboard: false, icon: L.divIcon({ className: "", iconSize: null,
-      html: `<div style="transform:translate(-50%,-50%);white-space:nowrap;background:${css("--bg")};color:${c};border:1.5px solid ${c};border-radius:999px;padding:1px 8px;font:700 11px Inter,sans-serif">${f.properties.minutes} min</div>` }) });
-  });
-  layers[1].rings = L.layerGroup([ringCasing, ringLines, ...ringLabels]).addTo(map1);
+  // Hatch pattern for zips with no memberships (id distinct from Map 2's pattern).
+  map1.getPanes().overlayPane.querySelector("svg")?.insertAdjacentHTML("afterbegin",
+    `<defs><pattern id="hatch1" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#8b9bb0" stroke-width="1" stroke-opacity=".8"/></pattern></defs>`);
+  Object.keys(ringGroups).map(Number).sort((a, b) => b - a).forEach((m) => ringGroups[m].addTo(map1));
 
   // ---------- Map 2: zips with memberships, colored by drive-time band
   const map2Legend = `<div class="lt">Drive time to clubhouse</div><div class="lu">Routed minutes, no traffic · zips with ≥1 membership</div>
