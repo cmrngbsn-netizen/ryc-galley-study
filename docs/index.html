@@ -145,7 +145,7 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
 
 <section id="summary">
   <h2>Key figures</h2>
-  <p class="sub">Drive time is measured by road from the clubhouse at 351 Brickyard Cove Rd, Richmond. Percentages are of <em>all</em> active Regular and Associate memberships, including those out of state.</p>
+  <p class="sub">Each figure counts the memberships in zip codes that can reach the clubhouse (351 Brickyard Cove Rd, Richmond) within that drive time, using the usual road route with no traffic. For example, “Within 30 min” includes every membership in a zip code 30 minutes or less from the club. Percentages are of <em>all</em> active Regular and Associate memberships, including those out of state.</p>
   <div class="kpis" id="kpis"></div>
   <div class="finding" id="finding"></div>
   <p class="defn"><strong>A note on units:</strong> every count on this page is a <em>membership</em>, not a person. One membership can cover a whole household, so the number of people who could come to dinner is higher than these counts.</p>
@@ -159,7 +159,7 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
     <div class="titleblock">
       <div class="fignum">Map 1</div>
       <h3>Where RYC memberships are concentrated</h3>
-      <p class="reads"><strong>How to read it:</strong> each zip code is shaded by how many RYC memberships it has. The darker the blue, the more memberships; hatched gray zips have none. The colored drive-time rings show how far you can drive from the clubhouse in 15, 30, 45 and 60 minutes. Use the "Drive-time rings" boxes to choose which rings to draw, and the "Zips within" boxes to show only certain drive-time zones, for example just the zips within 15 minutes; the count below the boxes updates to match.</p>
+      <p class="reads"><strong>How to read it:</strong> each zip code is shaded by how many RYC memberships it has. The darker the blue, the more memberships; hatched gray zips have none. The colored drive-time rings show how far away you can live and still reach the clubhouse in 15, 30, 45 or 60 minutes. Anyone living inside the green ring can drive to the club in 15 minutes or less. Use the "Drive-time rings" boxes to choose which rings to draw, and the "Zips within" boxes to show only certain drive-time zones, for example just the zips within 15 minutes; the count below the boxes updates to match.</p>
     </div>
     <div class="maptools"><span class="lbl">Show:</span>
       <label><input type="checkbox" data-map="1" data-layer="club" checked>Clubhouse marker</label>
@@ -226,7 +226,7 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
 
 <section id="demand">
   <h2>Dinner demand model</h2>
-  <p class="sub">A distance-decay model, as retailers use to forecast store traffic. Memberships close to the club are most likely to come to dinner, and the likelihood falls with each extra 15 minutes of driving. <strong>The default values are placeholders.</strong> Calibrate them with the Galley's actual dinner counts before drawing conclusions.</p>
+  <p class="sub">Memberships close to the club are most likely to come to dinner, and the likelihood falls with each extra 15 minutes of driving. <strong>The default values are placeholders.</strong> Calibrate them with the Galley's actual dinner counts before drawing conclusions.</p>
   <div class="model">
     <div class="card">
       <div class="slider"><label>Dinner rate, memberships within 15 min <output id="o-base"></output></label>
@@ -322,7 +322,7 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
   </ul>
   <h3>2. Drive time and distance</h3>
   <ul>
-    <li><strong>Per-zip drive time and road distance</strong> come from the openrouteservice Matrix API, using the driving-car profile on the OpenStreetMap road network. Each route runs from the clubhouse to a <em>representative point</em> of the zip: a point guaranteed to be inside the zip's boundary, unlike a geometric centroid, which can land in the Bay.</li>
+    <li><strong>Per-zip drive time and road distance</strong> come from the openrouteservice Matrix API, using the driving-car profile on the OpenStreetMap road network. Each route is calculated between the clubhouse and a <em>representative point</em> of the zip: a point guaranteed to be inside the zip's boundary, unlike a geometric centroid, which can land in the Bay.</li>
     <li>Zips are placed in bands by routed time: 0–15, 15–30, 30–45, 45–60, or more than 60 minutes. Upper limits are inclusive, so a 15.0-minute zip is in the 0–15 band. <span id="fallbackNote"></span></li>
     <li><strong>The drive-time rings on Map 1</strong> are built from the same routed zip times. For each band, all zips within that time are merged into one area, and small gaps are closed (0.8 km buffer) so the outline reads cleanly. A zip inside the "15 min" ring is therefore exactly a zip in the 0–15 minute band. openrouteservice isochrones set the study-area extent and are the backup method for any zip that can't be routed.</li>
     <li>Travel times assume typical free-flow speeds with <strong>no live traffic</strong>. The traffic factor in the demand model shows how sensitive the results are to congestion.</li>
@@ -478,7 +478,7 @@ Promise.all([
   const lg1 = `<div class="lt">Memberships per zip code</div><div class="lu">Count of memberships</div>
     ${M_CLASSES.map(([, l], i) => `<div class="row"><i class="sw" style="background:${M_COLORS[i]}"></i>${l}</div>`).join("")}
     <div class="row"><i class="sw" style="background:repeating-linear-gradient(45deg,${css("--ink-3")} 0 1px,transparent 1px 5px)"></i>No memberships</div>
-    <hr><div class="lt">Drive time from clubhouse</div><div class="lu">Minutes, no traffic</div>
+    <hr><div class="lt">Drive time to clubhouse</div><div class="lu">Minutes, no traffic</div>
     ${B.map((b) => `<div class="row"><i class="linesw" style="border-color:${bandColor(b.band)}"></i>${b.band} min</div>`).join("")}`;
   const map1 = makeMap(1, lg1);
   const zStyle1 = (f) => {
@@ -539,8 +539,7 @@ Promise.all([
   // ---------- Map 2: zips with memberships, colored by drive-time band
   const map2Legend = `<div class="lt">Drive time to clubhouse</div><div class="lu">Routed minutes, no traffic · zips with ≥1 membership</div>
     ${B.map((b) => `<div class="row"><i class="sw" style="background:${bandColor(b.band)}"></i>${b.label}</div>`).join("")}
-    <div class="row"><i class="sw" style="background:repeating-linear-gradient(45deg,${css("--ink-3")} 0 1px,transparent 1px 5px)"></i>More than 60 min</div>
-    <hr><div class="row"><i class="sw" style="background:transparent;border:1px solid ${css("--ink-3")};opacity:.5"></i>No memberships</div>`;
+    <div class="row"><i class="sw" style="background:repeating-linear-gradient(45deg,${css("--ink-3")} 0 1px,transparent 1px 5px)"></i>More than 60 min</div>`;
   const map2 = makeMap(2, map2Legend);
   const zipsVisible2 = () => $('[data-map="2"][data-layer="zips"]').checked;
   const zStyle2 = (f) => {
@@ -581,7 +580,7 @@ Promise.all([
     data: { datasets: [{ data: pts, stepped: true, borderColor: css("--link"), borderWidth: 2, pointRadius: 0, fill: { target: "origin" }, backgroundColor: "rgba(156,195,230,.12)" },
       { data: B.map((b) => ({ x: b.band, y: 100 * b.cumulative_share })), type: "scatter", pointRadius: 5, pointBackgroundColor: css("--gold"), pointBorderColor: css("--surface"), pointBorderWidth: 2 }] },
     options: { parsing: false,
-      scales: { x: { type: "linear", min: 0, max: 90, ticks: { stepSize: 15 }, title: axisTitle("Drive time from clubhouse (minutes)") },
+      scales: { x: { type: "linear", min: 0, max: 90, ticks: { stepSize: 15 }, title: axisTitle("Drive time to clubhouse (minutes)") },
                 y: { min: 0, max: 100, ticks: { callback: (v) => v + "%" }, title: axisTitle("Cumulative share of all memberships") } },
       plugins: { tooltip: { callbacks: { title: (i) => `Within ${Math.round(i[0].parsed.x)} min`, label: (i) => `${i.parsed.y.toFixed(0)}% of memberships` } } } },
   });
@@ -606,7 +605,7 @@ Promise.all([
     data: { datasets: [{ data: sc.map((p) => ({ x: p.distance_mi, y: p.drive_min, r: 3 + 11 * Math.sqrt(p.memberships / maxM), zip: p.zip_code, m: p.memberships, county: p.county })),
       backgroundColor: sc.map((p) => (p.band ? bandColor(p.band) : css("--ink-3")) + "cc"), borderColor: css("--surface"), borderWidth: 1 }] },
     options: { parsing: true,
-      scales: { x: { beginAtZero: true, title: axisTitle("Road distance (miles)") }, y: { beginAtZero: true, title: axisTitle("Drive time (minutes)") } },
+      scales: { x: { beginAtZero: true, title: axisTitle("Road distance (miles)") }, y: { beginAtZero: true, title: axisTitle("Drive time to clubhouse (minutes)") } },
       plugins: { tooltip: { callbacks: { label: (i) => { const d = i.raw; return [`${d.zip} · ${d.county}`, `${d.m} memberships`, `${d.y.toFixed(0)} min · ${d.x.toFixed(1)} mi`]; } } } } },
   });
 
@@ -679,7 +678,7 @@ Promise.all([
     [T.out_of_state, "out-of-state memberships", "Counted in the total of all memberships and in the percentages, but not mapped. None are within driving range for dinner."],
     [Q.po_box_remapped, "PO-box zip codes reassigned", "PO-box-only zips have no Census boundary, so each was placed in the zip that contains its post office."],
     [Q.zip_plus4_normalized, "ZIP+4 codes shortened", "Nine-digit ZIP+4 codes were shortened to 5 digits so they match Census zip boundaries."],
-    [Q.zips_isochrone_fallback, "zip(s) not routable", "A route couldn't be found to this zip, so it was assigned a band from the drive-time rings instead (see Methodology)."],
+    [Q.zips_isochrone_fallback, "zip(s) not routable", "A route couldn't be found to this zip, so it was placed using openrouteservice's drive-time areas instead. It falls outside the 60-minute area (see Methodology)."],
   ];
   $("#dq").innerHTML = dq.map(([n, t, d]) => `<div class="card dq"><div class="n">${fmt(n)}</div><div class="t"><strong>${t}</strong></div><p class="caveat" style="margin-top:6px">${d}</p></div>`).join("");
 }).catch((err) => {
