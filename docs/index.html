@@ -56,6 +56,9 @@ section { padding: 40px 0 8px; }
 .maptools label { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
 .maptools input { accent-color: var(--gold); width: 15px; height: 15px; }
 .maptools .lbl { font-weight: 600; color: var(--ink); }
+.maptools .sw { width: 11px; height: 11px; }
+.bandcount { display: block; padding-top: 6px; padding-bottom: 8px; color: var(--ink-2); }
+.bandcount b { color: var(--ink); }
 .linesw { display: inline-block; width: 18px; height: 0; border-top: 3px solid; flex-shrink: 0; }
 .legend { background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-size: 12px; line-height: 1.6; box-shadow: var(--shadow); max-width: 220px; }
 .legend .lt { font-weight: 700; font-size: 12.5px; margin-bottom: 2px; }
@@ -156,12 +159,14 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
     <div class="titleblock">
       <div class="fignum">Map 1</div>
       <h3>Where RYC memberships are concentrated</h3>
-      <p class="reads"><strong>How to read it:</strong> each zip code is shaded by how many RYC memberships it has. The lighter and brighter the blue, the more memberships; dark, unshaded areas have none. The colored drive-time rings show how far you can drive from the clubhouse in 15, 30, 45 and 60 minutes.</p>
+      <p class="reads"><strong>How to read it:</strong> each zip code is shaded by how many RYC memberships it has. The darker the blue, the more memberships; unshaded areas have none. The colored drive-time rings show how far you can drive from the clubhouse in 15, 30, 45 and 60 minutes. Use the "Zips within" boxes to show only certain drive-time zones, for example just the zips within 15 minutes; the count below the boxes updates to match.</p>
     </div>
     <div class="maptools"><span class="lbl">Show:</span>
       <label><input type="checkbox" data-map="1" data-layer="rings" checked>Drive-time rings</label>
       <label><input type="checkbox" data-map="1" data-layer="club" checked>Clubhouse marker</label>
     </div>
+    <div class="maptools" id="bandTools"><span class="lbl">Zips within:</span></div>
+    <div class="maptools bandcount" id="bandCount"></div>
     <div class="map" id="map1" role="img" aria-label="Map of memberships per zip code with labeled drive-time rings"></div>
     <div class="source" id="src1"></div>
   </figure>
@@ -326,7 +331,7 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
   <ul>
     <li>Zip boundaries are 2020 Census ZCTAs (Zip Code Tabulation Areas), which approximate USPS zip codes. Counties are 2020 Census boundaries, assigned by each zip's representative point.</li>
     <li>Area calculations use NAD83 / California Albers (EPSG:3310), an equal-area projection. The maps are displayed in Web Mercator (EPSG:3857), as usual for web maps; north is up everywhere.</li>
-    <li>Boundaries are simplified to a 40 m tolerance so the page loads quickly. Map 1 shades each zip by its membership count in five classes (1, 2–4, 5–9, 10–19, 20 or more). The classes were picked by hand so most zips, which have only a few memberships, still show up next to the club's own zip, which has 102.</li>
+    <li>Boundaries are simplified to a 40 m tolerance so the page loads quickly. Map 1 shades each zip by its membership count in five classes (1, 2–4, 5–9, 10–19, 20 or more). The classes were picked by hand so most zips, which have only a few memberships, still show up next to the club's own zip, which has 102. Darker blue means more memberships (ColorBrewer "Blues" scheme) on a light gray basemap, the usual convention for this kind of map.</li>
   </ul>
   <h3>4. Privacy</h3>
   <ul>
@@ -351,7 +356,7 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
     <li><strong>openrouteservice (HeiGIT, Heidelberg University)</strong>: Matrix API (per-zip drive time and road distance) and Isochrones API (study-area extent and backup banding), driving-car profile. <a href="https://openrouteservice.org">openrouteservice.org</a></li>
     <li><strong>OpenStreetMap contributors</strong>: the road network behind all routing, licensed under ODbL. <a href="https://www.openstreetmap.org/copyright">openstreetmap.org/copyright</a></li>
     <li><strong>Nominatim (OpenStreetMap)</strong>: geocoding of the clubhouse address. <a href="https://nominatim.org">nominatim.org</a></li>
-    <li><strong>Esri</strong>: World Dark Gray Canvas basemap (sources: Esri, HERE, Garmin, © OpenStreetMap contributors). <a href="https://www.arcgis.com/home/item.html?id=291da5eab3a0412593b66d384379f89f">arcgis.com</a></li>
+    <li><strong>Esri</strong>: World Light Gray Canvas basemap (sources: Esri, HERE, Garmin, © OpenStreetMap contributors). <a href="https://www.arcgis.com/home/item.html?id=291da5eab3a0412593b66d384379f89f">arcgis.com</a></li>
     <li><strong>Software</strong>: Python with GeoPandas, Shapely and pygris (processing); Leaflet (maps); Chart.js (charts). The code is in the project repository.</li>
   </ol>
 </section>
@@ -371,7 +376,7 @@ const fmt = (n) => Math.round(n).toLocaleString("en-US");
 const pct = (x, d = 0) => (x * 100).toFixed(d) + "%";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const dark = true;
-const BASEMAP = `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_${dark ? "Dark" : "Light"}_Gray_Base/MapServer/tile/{z}/{y}/{x}`;
+const BASEMAP = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
 const BASEMAP_ATTR = "Esri, HERE, Garmin, © OpenStreetMap contributors";
 
 Promise.all([
@@ -450,9 +455,10 @@ Promise.all([
     ageText(p),
   ].filter(Boolean).join("<br>");
   // Hover outlines just the zip under the cursor; the layer's own style function restores it.
-  const zipLayer = (styleFn) => {
+  const zipLayer = (styleFn, filter = () => true) => {
     const layer = L.geoJSON(zips, {
       style: styleFn,
+      filter: (f) => filter(f.properties),
       onEachFeature: (f, l) => {
         l.bindTooltip(tip(f.properties), { sticky: true, className: "zt", direction: "auto" });
         l.on("mouseover", () => { l.setStyle(HILITE); l.bringToFront(); });
@@ -461,13 +467,13 @@ Promise.all([
     });
     return layer;
   };
-  const sourceLine = "Sources: RYC membership roster (aggregated); U.S. Census Bureau 2020 ZCTA &amp; county boundaries; openrouteservice / © OpenStreetMap contributors; basemap Esri Dark Gray Canvas. Projection: Web Mercator. Drive times assume no traffic.";
+  const sourceLine = "Sources: RYC membership roster (aggregated); U.S. Census Bureau 2020 ZCTA &amp; county boundaries; openrouteservice / © OpenStreetMap contributors; basemap Esri Light Gray Canvas. Projection: Web Mercator. Drive times assume no traffic.";
   $("#src1").innerHTML = sourceLine;
   $("#src2").innerHTML = sourceLine;
 
   // ---------- Map 1: memberships per zip (classed choropleth) + labeled drive-time rings
   const M_CLASSES = [[1, "1"], [2, "2–4"], [5, "5–9"], [10, "10–19"], [20, "20 or more"]];
-  const M_COLORS = ["#1f4f78", "#2e79a6", "#4ea4cf", "#8fcbe8", "#e0f3ff"];
+  const M_COLORS = ["#c6dbef", "#9ecae1", "#6baed6", "#3182bd", "#08519c"]; // ColorBrewer Blues: darker = more
   const mClass = (n) => { let k = -1; M_CLASSES.forEach(([lo], i) => { if (n >= lo) k = i; }); return k; };
   const lg1 = `<div class="lt">Memberships per zip code</div><div class="lu">Count of memberships</div>
     ${M_CLASSES.map(([, l], i) => `<div class="row"><i class="sw" style="background:${M_COLORS[i]}"></i>${l}</div>`).join("")}
@@ -477,13 +483,32 @@ Promise.all([
   const map1 = makeMap(1, lg1);
   const zStyle1 = (f) => {
     const k = mClass(f.properties.memberships);
-    return k < 0 ? { fillOpacity: 0, color: css("--ink-3"), weight: 0.4, opacity: 0.15 }
-                 : { fillColor: M_COLORS[k], fillOpacity: 0.85, color: "#dce6f0", weight: 0.5, opacity: 0.35 };
+    return k < 0 ? { fillOpacity: 0, color: "#6b7c90", weight: 0.4, opacity: 0.3 }
+                 : { fillColor: M_COLORS[k], fillOpacity: 0.85, color: "#ffffff", weight: 0.6, opacity: 0.8 };
   };
-  layers[1].zips = zipLayer(zStyle1).addTo(map1);
+  // Drive-time zone filter: each checkbox shows/hides the zips in one band.
+  const ZONES = [...B.map((b) => [String(b.band), b.label, bandColor(b.band)]), ["far", "More than 60 min", css("--ink-3")]];
+  $("#bandTools").insertAdjacentHTML("beforeend", ZONES.map(([k, l, c]) =>
+    `<label><input type="checkbox" data-zone="${k}" checked><i class="sw" style="background:${c}"></i>${l}</label>`).join(""));
+  const zoneOf = (p) => (p.band ? String(p.band) : "far");
+  const zoneOn = () => new Set([...document.querySelectorAll("[data-zone]")].filter((c) => c.checked).map((c) => c.dataset.zone));
+  const drawZips1 = () => {
+    const on = zoneOn();
+    if (layers[1].zips) map1.removeLayer(layers[1].zips);
+    layers[1].zips = zipLayer(zStyle1, (p) => on.has(zoneOf(p))).addTo(map1);
+    if (map1.hasLayer(layers[1].rings || L.layerGroup())) layers[1].rings.eachLayer((l) => l.bringToFront && l.bringToFront());
+    const shown = Z.filter((p) => p.memberships > 0 && on.has(zoneOf(p)));
+    const n = shown.reduce((a, p) => a + p.memberships, 0);
+    $("#bandCount").innerHTML = `Showing <b>${fmt(n)}</b> memberships in <b>${fmt(shown.length)}</b> zip codes (${pct(n / T.all_memberships)} of all memberships)` +
+      (on.has("far") ? ". Zips more than 60 minutes away only include those with memberships inside the map area." : "");
+  };
+  document.querySelectorAll("[data-zone]").forEach((cb) => cb.addEventListener("change", drawZips1));
+  drawZips1();
   // Rings drawn largest first so each smaller ring's line sits on top of the shared edge.
-  const ringLines = L.geoJSON({ ...rings, features: [...rings.features].sort((a, b) => b.properties.minutes - a.properties.minutes) },
-    { interactive: false, style: (f) => ({ fill: false, color: bandColor(f.properties.minutes), weight: 2.4, opacity: 1 }) });
+  const ringsSorted = { ...rings, features: [...rings.features].sort((a, b) => b.properties.minutes - a.properties.minutes) };
+  const ringCasing = L.geoJSON(ringsSorted, { interactive: false, style: () => ({ fill: false, color: "#16202b", weight: 4.6, opacity: 0.55 }) });
+  const ringLines = L.geoJSON(ringsSorted,
+    { interactive: false, style: (f) => ({ fill: false, color: bandColor(f.properties.minutes), weight: 2.6, opacity: 1 }) });
   // Direct labels at each ring's northernmost point.
   const northmost = (geom) => {
     const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
@@ -496,7 +521,7 @@ Promise.all([
     return L.marker([y, x], { interactive: false, keyboard: false, icon: L.divIcon({ className: "", iconSize: null,
       html: `<div style="transform:translate(-50%,-50%);white-space:nowrap;background:${css("--bg")};color:${c};border:1.5px solid ${c};border-radius:999px;padding:1px 8px;font:700 11px Inter,sans-serif">${f.properties.minutes} min</div>` }) });
   });
-  layers[1].rings = L.layerGroup([ringLines, ...ringLabels]).addTo(map1);
+  layers[1].rings = L.layerGroup([ringCasing, ringLines, ...ringLabels]).addTo(map1);
 
   // ---------- Map 2: zips with memberships, colored by drive-time band
   const map2Legend = `<div class="lt">Drive time to clubhouse</div><div class="lu">Routed minutes, no traffic · zips with ≥1 membership</div>
@@ -509,14 +534,14 @@ Promise.all([
     const p = f.properties, edge = zipsVisible2();
     if (!(p.memberships > 0)) return { fillColor: css("--ink-3"), fillOpacity: 0.03, color: css("--ink-3"), weight: 0.4, opacity: edge ? 0.2 : 0 };
     if (!p.band) return { fillColor: "url(#hatch)", fillOpacity: 0.5, color: css("--ink-3"), weight: 0.5, opacity: edge ? 0.5 : 0 };
-    return { fillColor: bandColor(p.band), fillOpacity: 0.78, color: "#dce6f0", weight: 0.5, opacity: edge ? 0.4 : 0 };
+    return { fillColor: bandColor(p.band), fillOpacity: 0.8, color: "#ffffff", weight: 0.6, opacity: edge ? 0.8 : 0 };
   };
   layers[2].zips = zipLayer(zStyle2).addTo(map2);
   const svg = map2.getPanes().overlayPane.querySelector("svg");
   if (svg) svg.insertAdjacentHTML("afterbegin", `<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="${css("--ink-3")}" stroke-width="1" stroke-opacity=".7"/></pattern></defs>`);
 
   // ---------- Map toggles
-  document.querySelectorAll(".maptools input").forEach((cb) => cb.addEventListener("change", () => {
+  document.querySelectorAll(".maptools input[data-layer]").forEach((cb) => cb.addEventListener("change", () => {
     const L_ = layers[cb.dataset.map], name = cb.dataset.layer;
     if (name === "zips") L_.zips.setStyle(zStyle2);
     else cb.checked ? L_[name].addTo(L_.map) : L_.map.removeLayer(L_[name]);
