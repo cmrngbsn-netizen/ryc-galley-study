@@ -153,13 +153,13 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
 
 <section id="maps">
   <h2>Maps</h2>
-  <p class="sub">Hover over any zip code for details. Scroll-wheel zoom is off so the page scrolls normally; use the + / − buttons to zoom. Zip codes with no RYC memberships are drawn faintly so the eye goes to where members are.</p>
+  <p class="sub">Hover over any zip code for details. Scroll-wheel zoom is off so the page scrolls normally; use the + / − buttons to zoom.</p>
 
   <figure class="mapfig" style="margin:0 0 22px">
     <div class="titleblock">
       <div class="fignum">Map 1</div>
       <h3>Where RYC memberships are concentrated</h3>
-      <p class="reads"><strong>How to read it:</strong> each zip code is shaded by how many RYC memberships it has. The darker the blue, the more memberships; hatched gray zips have none. The colored drive-time rings show how far away you can live and still reach the clubhouse in 15, 30, 45 or 60 minutes. Anyone living inside the green ring can drive to the club in 15 minutes or less. Use the "Drive-time rings" boxes to choose which rings to draw, and the "Zips within" boxes to show only certain drive-time zones, for example just the zips within 15 minutes; the count below the boxes updates to match.</p>
+      <p class="reads"><strong>How to read it:</strong> each zip code is shaded by how many RYC memberships it has. The darker the purple, the more memberships; hatched gray zips have none. The colored drive-time rings show how far away you can live and still reach the clubhouse in 15, 30, 45 or 60 minutes. Anyone living inside the green ring can drive to the club in 15 minutes or less. Use the "Drive-time rings" boxes to choose which rings to draw, and the "Zips within" boxes to show only certain drive-time zones, for example just the zips within 15 minutes; the count below the boxes updates to match.</p>
     </div>
     <div class="maptools"><span class="lbl">Show:</span>
       <label><input type="checkbox" data-map="1" data-layer="club" checked>Clubhouse marker</label>
@@ -175,7 +175,7 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
     <div class="titleblock">
       <div class="fignum">Map 2</div>
       <h3>Drive time to the clubhouse from each zip code with memberships</h3>
-      <p class="reads"><strong>How to read it:</strong> each zip code with at least one membership is colored by its typical drive to the club: green is 0–15 minutes, yellow 15–30, orange 30–45 and red 45–60. Hatched gray zips are more than 60 minutes away. Zips with no memberships are drawn faintly.</p>
+      <p class="reads"><strong>How to read it:</strong> each zip code with at least one membership is colored by its typical drive to the club: green is 0–15 minutes, yellow 15–30, orange 30–45 and red 45–60. Hatched gray zips are more than 60 minutes away.</p>
     </div>
     <div class="maptools"><span class="lbl">Show:</span>
       <label><input type="checkbox" data-map="2" data-layer="zips" checked>Zip code boundaries</label>
@@ -331,7 +331,7 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
   <ul>
     <li>Zip boundaries are 2020 Census ZCTAs (Zip Code Tabulation Areas), which approximate USPS zip codes. Counties are 2020 Census boundaries, assigned by each zip's representative point.</li>
     <li>Area calculations use NAD83 / California Albers (EPSG:3310), an equal-area projection. The maps are displayed in Web Mercator (EPSG:3857), as usual for web maps; north is up everywhere.</li>
-    <li>Boundaries are simplified to a 40 m tolerance so the page loads quickly. Map 1 shades each zip by its membership count in five classes (1, 2–4, 5–9, 10–19, 20 or more). The classes were picked by hand so most zips, which have only a few memberships, still show up next to the club's own zip, which has 102. Darker blue means more memberships (ColorBrewer "Blues" scheme) on a light gray basemap, the usual convention for this kind of map.</li>
+    <li>Boundaries are simplified to a 40 m tolerance so the page loads quickly. Map 1 shades each zip by its membership count in five classes (1, 2–4, 5–9, 10–19, 20 or more). The classes were picked by hand so most zips, which have only a few memberships, still show up next to the club's own zip, which has 102. Darker purple means more memberships (ColorBrewer "Purples" scheme) on a light gray basemap, the usual convention for this kind of map. Purple was chosen over blue so shaded zips aren't mistaken for the Bay and other water, and so they stay distinct from the green-to-red drive-time colors.</li>
   </ul>
   <h3>4. Privacy</h3>
   <ul>
@@ -473,7 +473,7 @@ Promise.all([
 
   // ---------- Map 1: memberships per zip (classed choropleth) + labeled drive-time rings
   const M_CLASSES = [[1, "1"], [2, "2–4"], [5, "5–9"], [10, "10–19"], [20, "20 or more"]];
-  const M_COLORS = ["#c6dbef", "#9ecae1", "#6baed6", "#3182bd", "#08519c"]; // ColorBrewer Blues: darker = more
+  const M_COLORS = ["#dadaeb", "#bcbddc", "#9e9ac8", "#756bb1", "#54278f"]; // ColorBrewer Purples: darker = more; avoids confusion with water
   const mClass = (n) => { let k = -1; M_CLASSES.forEach(([lo], i) => { if (n >= lo) k = i; }); return k; };
   const lg1 = `<div class="lt">Memberships per zip code</div><div class="lu">Count of memberships</div>
     ${M_CLASSES.map(([, l], i) => `<div class="row"><i class="sw" style="background:${M_COLORS[i]}"></i>${l}</div>`).join("")}
