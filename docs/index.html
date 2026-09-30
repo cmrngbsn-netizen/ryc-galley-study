@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RYC Galley Catchment Study</title>
 <meta name="description" content="Drive-time catchment analysis of Richmond Yacht Club memberships to inform investment in the Galley dining room.">
+<meta name="theme-color" content="#0d1b2a">
+<meta property="og:type" content="website">
+<meta property="og:title" content="RYC Galley Catchment Study">
+<meta property="og:description" content="48% of Richmond Yacht Club memberships live within a 30-minute drive of the club. A drive-time study to inform a Galley expansion.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230d1b2a'/%3E%3Ctext x='16' y='23' font-size='19' text-anchor='middle' fill='%23c9a227'%3E%E2%9A%93%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -13,13 +18,25 @@
   color-scheme: dark;
   --bg: #0d1b2a; --surface: #14263a; --surface-2: #1b3048; --border: #27415e;
   --ink: #f2efe6; --ink-2: #c3cedb; --ink-3: #8b9bb0; --grid: #22384f;
-  --accent: #c9a227; --gold: #c9a227; --link: #9cc3e6;
+  --gold: #c9a227; --link: #9cc3e6;
   --band-15: #4fb286; --band-30: #e3c14f; --band-45: #e8873f; --band-60: #d4574e;
   --s-reg: #9cc3e6; --s-assoc: #c9a227;
   --r-near: #4fb286; --r-mid: #e8873f; --r-far: #6b7c90;
   --shadow: 0 1px 3px rgba(0,0,0,.35);
 }
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+section, #top { scroll-margin-top: 64px; }
+.stickynav { position: fixed; top: 0; left: 0; right: 0; z-index: 2000; background: rgba(13,27,42,.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); transform: translateY(-100%); transition: transform .2s ease; }
+.stickynav.show { transform: none; }
+.stickynav .wrap { display: flex; align-items: center; gap: 22px; height: 52px; }
+.sn-title { font-family: "Source Serif 4", Georgia, serif; font-weight: 700; color: var(--ink); text-decoration: none; white-space: nowrap; }
+.sn-links { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.sn-links::-webkit-scrollbar { display: none; }
+.sn-links a { color: var(--ink-2); text-decoration: none; font-size: 13.5px; font-weight: 500; padding: 6px 10px; border-radius: 6px; white-space: nowrap; }
+.sn-links a:hover { color: var(--ink); background: var(--surface-2); }
+.sn-links a.active { color: #0d1b2a; background: var(--gold); }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .stickynav { transition: none; } }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 Inter, system-ui, sans-serif; }
 .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
 header.hero { border-bottom: 1px solid var(--border); background: var(--surface); }
@@ -35,11 +52,23 @@ nav.toc a { color: var(--link); text-decoration: none; font-weight: 500; }
 section { padding: 40px 0 8px; }
 .sub { color: var(--ink-2); margin: 0 0 18px; max-width: 800px; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; }
-.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
-.kpi .label { font-size: 13px; color: var(--ink-2); font-weight: 500; }
-.kpi .value { font-size: 34px; font-weight: 700; letter-spacing: -.02em; line-height: 1.1; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
-.kpi .note { font-size: 13px; color: var(--ink-3); }
-.finding { border-left: 3px solid var(--gold); padding: 12px 16px; background: var(--surface); border-radius: 0 10px 10px 0; margin-top: 16px; max-width: 920px; }
+.headline { font-size: clamp(24px, 3.2vw, 32px); margin: 6px 0 18px; max-width: 900px; line-height: 1.25; }
+.headline b { color: var(--gold); }
+.glance-sub { margin: 0 0 14px; font-size: 13px; color: var(--ink-3); }
+.zonebar { display: flex; gap: 2px; height: 40px; border-radius: 6px; overflow: hidden; }
+.zonebar div { display: flex; align-items: center; justify-content: center; color: #0d1b2a; font-weight: 700; font-size: 14px; min-width: 0; }
+.zonekey { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-top: 14px; }
+.zonekey .zk-n { font-size: 26px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.zonekey .zk-l { font-size: 13px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.zonekey .zk-p { font-size: 12.5px; color: var(--ink-3); }
+.glance-grid { display: grid; grid-template-columns: 1.55fr 1fr; gap: 16px; margin-top: 16px; }
+.mapfig .map.map0 { height: 470px; }
+.takeaways ul { padding-left: 18px; margin: 8px 0 18px; }
+.takeaways li { margin-bottom: 12px; color: var(--ink-2); line-height: 1.5; }
+.takeaways li b { color: var(--ink); }
+.cta { display: inline-block; background: var(--gold); color: #0d1b2a; font-weight: 700; padding: 9px 16px; border-radius: 8px; text-decoration: none; }
+.divider { display: flex; align-items: center; gap: 14px; margin: 44px 0 0; color: var(--ink-3); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.divider::before, .divider::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
 .defn { font-size: 13px; color: var(--ink-3); margin-top: 10px; max-width: 920px; }
 
 /* Map figures: a cartographic layout -- title block, framed map, source line */
@@ -94,9 +123,9 @@ td.num, th.num { text-align: right; }
 .model { display: grid; grid-template-columns: 1fr 1.2fr; gap: 16px; }
 .slider { margin-bottom: 16px; }
 .slider label { display: flex; justify-content: space-between; font-size: 13.5px; font-weight: 500; gap: 10px; }
-.slider label output { color: var(--accent); font-variant-numeric: tabular-nums; }
+.slider label output { color: var(--gold); font-variant-numeric: tabular-nums; }
 .slider small { display: block; color: var(--ink-3); font-size: 12px; }
-input[type=range] { width: 100%; accent-color: var(--accent); }
+input[type=range] { width: 100%; accent-color: var(--gold); }
 input[type=number] { width: 90px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }
 .big { font-size: 48px; font-weight: 700; letter-spacing: -.02em; line-height: 1; font-variant-numeric: tabular-nums; }
 .pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
@@ -117,8 +146,11 @@ input[type=number] { width: 90px; padding: 5px 8px; border: 1px solid var(--bord
 .sources a { color: var(--link); }
 footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 40px; font-size: 13px; color: var(--ink-3); }
 @media (max-width: 860px) {
-  .kpis { grid-template-columns: repeat(2, 1fr); }
-  .grid-2, .model, .notes-grid { grid-template-columns: 1fr; }
+    .sn-title { display: none; }
+  .grid-2, .model, .notes-grid, .glance-grid { grid-template-columns: 1fr; }
+  .zonekey { grid-template-columns: repeat(2, 1fr); }
+  .zonebar div { font-size: 12px; }
+  .mapfig .map.map0 { height: 380px; }
   .charts { grid-template-columns: 1fr; }
   .chart .box { height: 200px; }
   .mapfig .map { height: 460px; }
@@ -129,27 +161,53 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
 </head>
 <body>
 
-<header class="hero">
+<header class="hero" id="top">
   <div class="wrap">
     <div class="eyebrow">Richmond Yacht Club · Board briefing draft</div>
     <h1>Galley Catchment Study</h1>
-    <p class="lede">How many RYC memberships are close enough to the club to come in for dinner? This study uses the methods retailers use to decide whether a location is worth investing in (drive-time trade areas, distance decay and demand estimates) to help the board evaluate an expansion of the Galley.</p>
+    <p class="lede">How many RYC memberships live close enough to drive to the club for dinner? A drive-time study to help the board decide whether to expand the Galley.</p>
     <div class="meta" id="meta">Loading data…</div>
     <nav class="toc">
-      <a href="#summary">Summary</a><a href="#maps">Maps</a><a href="#charts">Charts</a><a href="#demand">Demand model</a><a href="#detail">Tables</a><a href="#notes">Data notes</a><a href="#next">Next steps</a><a href="#method">Methodology &amp; sources</a>
+      <a href="#glance">At a glance</a><a href="#maps">Maps</a><a href="#charts">Charts</a><a href="#demand">Demand model</a><a href="#detail">Tables</a><a href="#notes">Data notes</a><a href="#next">Next steps</a><a href="#method">Methodology &amp; sources</a>
     </nav>
   </div>
 </header>
 
+<nav class="stickynav" id="stickyNav" aria-label="Jump to section">
+  <div class="wrap"><a class="sn-title" href="#top">RYC Galley Study</a><div class="sn-links"><a href="#glance">At a glance</a><a href="#maps">Maps</a><a href="#charts">Charts</a><a href="#demand">Demand model</a><a href="#detail">Tables</a><a href="#notes">Data notes</a><a href="#next">Next steps</a><a href="#method">Methodology &amp; sources</a></div></div>
+</nav>
+
+<noscript><p class="wrap" style="padding:20px 16px">This dashboard needs JavaScript to load its maps and charts.</p></noscript>
+
 <main class="wrap">
 
-<section id="summary">
-  <h2>Key figures</h2>
-  <p class="sub">Each figure counts the memberships in zip codes that can reach the clubhouse (351 Brickyard Cove Rd, Richmond) within that drive time, using the usual road route with no traffic. For example, “Within 30 min” includes every membership in a zip code 30 minutes or less from the club. Percentages are of <em>all</em> active Regular and Associate memberships, including those out of state.</p>
-  <div class="kpis" id="kpis"></div>
-  <div class="finding" id="finding"></div>
-  <p class="defn"><strong>A note on units:</strong> every count on this page is a <em>membership</em>, not a person. One membership can cover a whole household, so the number of people who could come to dinner is higher than these counts.</p>
+<section id="glance">
+  <div class="eyebrow">At a glance</div>
+  <h2 class="headline" id="headline"></h2>
+  <div class="card">
+    <h3>How far RYC memberships are from the club</h3>
+    <p class="glance-sub">Drive time from each membership's zip code to the clubhouse, no traffic</p>
+    <div class="zonebar" id="zoneBar" role="img"></div>
+    <div class="zonekey" id="zoneKey"></div>
+  </div>
+  <div class="glance-grid">
+    <figure class="mapfig" style="margin:0">
+      <div class="titleblock">
+        <h3>Where memberships are, by drive time</h3>
+        <p class="reads">Each colored area is a zip code with RYC memberships. Green is closest to the club; red is up to an hour away.</p>
+      </div>
+      <div class="map map0" id="map0" role="img" aria-label="Zip codes with memberships colored by drive time to the clubhouse"></div>
+    </figure>
+    <div class="card takeaways">
+      <h3>Key takeaways</h3>
+      <ul id="takeaways"></ul>
+      <a class="cta" href="#maps">See the full analysis ↓</a>
+    </div>
+  </div>
+  <p class="defn">Counts are <em>memberships</em>, not people; one membership can cover a whole household. Percentages are of all <span id="totalAll"></span> active Regular and Associate memberships, including those out of state.</p>
 </section>
+
+<div class="divider"><span>Full analysis</span></div>
 
 <section id="maps">
   <h2>Maps</h2>
@@ -193,32 +251,32 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
     <div class="card chart">
       <h3>Share of memberships within a given drive time</h3>
       <p class="reads">Follow the line to any drive time to see what share of all memberships live within it. A steep early climb means the membership is concentrated close to the club.</p>
-      <div class="box"><canvas id="cCapture"></canvas></div>
+      <div class="box"><canvas id="cCapture" role="img" aria-label="Line chart: cumulative share of memberships by drive time to the clubhouse. Exact values are in the Tables section and on hover."></canvas></div>
       <p class="note" id="nCapture"></p>
     </div>
     <div class="card chart">
       <h3>Memberships by drive-time band and type</h3>
       <p class="reads">How many memberships fall in each 15-minute band, split into Regular and Associate.</p>
       <div class="legend-inline"><span><i class="sw" style="background:var(--s-reg)"></i>Regular</span><span><i class="sw" style="background:var(--s-assoc)"></i>Associate</span></div>
-      <div class="box"><canvas id="cBands"></canvas></div>
+      <div class="box"><canvas id="cBands" role="img" aria-label="Stacked bar chart: Regular and Associate memberships in each drive-time band. Exact values are in the Tables section and on hover."></canvas></div>
     </div>
     <div class="card chart">
       <h3>Drive time vs. road distance, by zip code</h3>
       <p class="reads">Each dot is a zip code with memberships, and bigger dots have more memberships. Dots above the trend take longer to drive than their distance suggests, usually because of bridges, hills or indirect routes.</p>
       <div class="legend-inline"><span><i class="sw" style="background:var(--band-15)"></i>0–15 min</span><span><i class="sw" style="background:var(--band-30)"></i>15–30</span><span><i class="sw" style="background:var(--band-45)"></i>30–45</span><span><i class="sw" style="background:var(--band-60)"></i>45–60</span><span><i class="sw" style="background:var(--ink-3)"></i>More than 60</span></div>
-      <div class="box"><canvas id="cScatter"></canvas></div>
+      <div class="box"><canvas id="cScatter" role="img" aria-label="Scatter chart: drive time versus road distance for each zip code with memberships. Exact values are in the Tables section and on hover."></canvas></div>
       <p class="note">Colors match the drive-time bands on Map 2. Zips more than 90 minutes away are left off to keep the scale readable.</p>
     </div>
     <div class="card chart">
       <h3>Memberships within 60 minutes, by county</h3>
       <p class="reads">Which counties make up the core trade area.</p>
-      <div class="box"><canvas id="cCounty"></canvas></div>
+      <div class="box"><canvas id="cCounty" role="img" aria-label="Bar chart: memberships within 60 minutes by county. Exact values are in the Tables section and on hover."></canvas></div>
     </div>
     <div class="card chart wide" style="grid-column: 1 / -1">
       <h3>Age profile by distance from the club</h3>
       <p class="reads">Number of memberships in each age group, grouped by how far away they are. The age is the one recorded on the membership. "Not recorded" means the roster has no age for that membership.</p>
       <div class="legend-inline"><span><i class="sw" style="background:var(--r-near)"></i>Within 30 min</span><span><i class="sw" style="background:var(--r-mid)"></i>30–60 min</span><span><i class="sw" style="background:var(--r-far)"></i>More than 60 min or out of state</span></div>
-      <div class="box"><canvas id="cAge"></canvas></div>
+      <div class="box"><canvas id="cAge" role="img" aria-label="Grouped bar chart: memberships by age group and distance from the club. Exact values are in the Tables section and on hover."></canvas></div>
       <p class="note" id="nAge"></p>
     </div>
   </div>
@@ -375,9 +433,30 @@ const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v
 const fmt = (n) => Math.round(n).toLocaleString("en-US");
 const pct = (x, d = 0) => (x * 100).toFixed(d) + "%";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const dark = true;
 const BASEMAP = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
 const BASEMAP_ATTR = "Esri, HERE, Garmin, © OpenStreetMap contributors";
+
+// Floating section nav: appears once the reader reaches the full analysis; highlights the current section.
+(() => {
+  const nav = $("#stickyNav"), divider = document.querySelector(".divider");
+  const links = [...nav.querySelectorAll(".sn-links a")];
+  const sections = links.map((a) => document.querySelector(a.getAttribute("href")));
+  let ticking = false;
+  const update = () => {
+    ticking = false;
+    nav.classList.toggle("show", divider.getBoundingClientRect().top < 60);
+    let current = 0;
+    sections.forEach((sec, i) => { if (sec && sec.getBoundingClientRect().top < 140) current = i; });
+    links.forEach((a, i) => a.classList.toggle("active", i === current));
+    const act = links[current];
+    if (nav.classList.contains("show") && act) {
+      const box = act.parentElement, l = act.offsetLeft, r = l + act.offsetWidth;
+      if (l < box.scrollLeft || r > box.scrollLeft + box.clientWidth) box.scrollTo({ left: l - 16, behavior: "smooth" });
+    }
+  };
+  addEventListener("scroll", () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
+  update();
+})();
 
 Promise.all([
   fetch("data/summary.json", { cache: "no-cache" }).then((r) => r.json()),
@@ -397,16 +476,26 @@ Promise.all([
   $("#fallbackNote").textContent = Q.zips_isochrone_fallback
     ? `${Q.zips_isochrone_fallback} zip with memberships couldn't be routed and was banded by how much of it lies inside each isochrone (at least 25% of its area).` : "";
 
-  // ---------- KPIs
+  // ---------- At a glance: headline, distance bar, takeaways
   const c = (i) => B[i].cumulative, cs = (i) => B[i].cumulative_share;
-  $("#kpis").innerHTML = [
-    ["Within 15 min", c(0), `${pct(cs(0))} of memberships`],
-    ["Within 30 min", c(1), `${pct(cs(1))} of memberships`],
-    ["Within 60 min", c(3), `${pct(cs(3))} of memberships`],
-    ["More than 60 min or out of state", T.ca_beyond_60 + T.out_of_state, `${fmt(T.ca_beyond_60)} in CA · ${fmt(T.out_of_state)} out of state`],
-  ].map(([l, v, n]) => `<div class="card kpi"><div class="label">${l}</div><div class="value">${fmt(v)}</div><div class="note">${n}</div></div>`).join("");
+  const far = T.ca_beyond_60 + T.out_of_state;
+  const GLANCE = [...B.map((b) => ({ label: b.label, n: b.memberships, color: bandColor(b.band) })),
+    { label: "More than 60 min or out of state", n: far, color: "#7d8796" }];
+  $("#totalAll").textContent = fmt(T.all_memberships);
+  $("#headline").innerHTML = `<b>${pct(cs(1))}</b> of RYC memberships live within a <b>30-minute drive</b> of the club.`;
+  $("#zoneBar").setAttribute("aria-label", GLANCE.map((g) => `${g.label}: ${g.n}`).join(", "));
+  $("#zoneBar").innerHTML = GLANCE.map((g) => { const sh = g.n / T.all_memberships;
+    return `<div style="flex:${g.n};background:${g.color}" title="${g.label}: ${fmt(g.n)} (${pct(sh)})">${sh >= 0.06 ? pct(sh) : ""}</div>`; }).join("");
+  $("#zoneKey").innerHTML = GLANCE.map((g) => `<div><div class="zk-n">${fmt(g.n)}</div>
+    <div class="zk-l"><i class="sw" style="background:${g.color}"></i>${g.label}</div><div class="zk-p">${pct(g.n / T.all_memberships)} of memberships</div></div>`).join("");
   const top = S.top_zips[0];
-  $("#finding").innerHTML = `<strong>Initial read:</strong> nearly half of all memberships (${fmt(c(1))}, ${pct(cs(1))}) are within a 30-minute drive of the club, a strong local base for a dinner program. The biggest concentration is the club's own zip code, ${top.zip_code} (Point Richmond), with ${fmt(top.memberships)} memberships about ${Math.round(top.drive_min)} minutes away. About ${pct(1 - cs(3))} of memberships are more than an hour away or out of state and are unlikely regular diners.`;
+  $("#takeaways").innerHTML = [
+    `<b>${fmt(c(1))} memberships (${pct(cs(1))})</b> can reach the club in 30 minutes or less. This is the core market for Galley dinners.`,
+    `The club's own zip code, <b>${top.zip_code} (Point Richmond)</b>, has the most memberships: <b>${fmt(top.memberships)}</b>, about ${Math.round(top.drive_min)} minutes away.`,
+    `<b>${fmt(B[2].memberships + B[3].memberships)} (${pct((B[2].memberships + B[3].memberships) / T.all_memberships)})</b> are 30–60 minutes away, a long drive for a weeknight dinner.`,
+    `<b>${fmt(far)} (${pct(far / T.all_memberships)})</b> are more than an hour away or out of state and are unlikely to be regular diners.`,
+    `<b>Next:</b> dinner attendance and spending records would show how many of these memberships actually come, and whether a bigger Galley would pay off.`,
+  ].map((t) => `<li>${t}</li>`).join("");
 
   // ---------- Shared cartographic furniture
   const NORTH_SVG = `<svg width="26" height="40" viewBox="0 0 26 40" aria-label="North arrow">
@@ -417,7 +506,7 @@ Promise.all([
     html: `<div style="width:22px;height:22px;border-radius:50%;background:${css("--gold")};border:2px solid ${css("--bg")};box-shadow:0 1px 5px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;color:${css("--bg")};font-size:11px;font-weight:700">⚓</div>` });
   const HILITE = { weight: 2.5, color: "#ffffff", opacity: 1 };
   const extent = L.geoJSON(rings).getBounds();
-  const layers = { 1: {}, 2: {} };
+  const layers = { 0: {}, 1: {}, 2: {} };
 
   function makeMap(n, legendHtml) {
     const id = "map" + n;
@@ -551,6 +640,13 @@ Promise.all([
   layers[2].zips = zipLayer(zStyle2).addTo(map2);
   const svg = map2.getPanes().overlayPane.querySelector("svg");
   if (svg) svg.insertAdjacentHTML("afterbegin", `<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="${css("--ink-3")}" stroke-width="1" stroke-opacity=".7"/></pattern></defs>`);
+
+  // ---------- At-a-glance map: only zips with memberships, colored by drive-time zone
+  const lg0 = `<div class="lt">Drive time to clubhouse</div>` + GLANCE.map((g, i) =>
+    `<div class="row"><i class="sw" style="background:${g.color}"></i>${i === 4 ? "More than 60 min" : g.label}</div>`).join("");
+  const map0 = makeMap(0, lg0);
+  zipLayer((f) => ({ fillColor: f.properties.band ? bandColor(f.properties.band) : "#7d8796", fillOpacity: 0.85, color: "#ffffff", weight: 0.6, opacity: 0.9 }),
+    (p) => p.memberships > 0).addTo(map0);
 
   // ---------- Map toggles
   document.querySelectorAll(".maptools input[data-layer]").forEach((cb) => cb.addEventListener("change", () => {
