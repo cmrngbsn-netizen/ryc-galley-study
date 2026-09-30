@@ -18,10 +18,12 @@ scripts/build_dataset.py     → docs/data/{zips.geojson, rings.geojson, summary
 docs/index.html              static dashboard (Leaflet), served by GitHub Pages
 ```
 
-- **Drive time:** openrouteservice isochrones (15/30/45/60 min). With
-  `ORS_API_KEY` set, `build_dataset.py` also routes the clubhouse to every zip
-  for exact minutes and road miles, cached in `data/cache/`. Without a key it
-  falls back to banding zips by isochrone area overlap.
+- **Drive time:** each zip is routed to the clubhouse with the openrouteservice
+  Matrix API (minutes + road miles), cached in `data/cache/` so reruns don't
+  need a key unless new zips appear. The drive-time rings on the maps are built
+  by merging the zips in each band, so they match the zip assignments exactly.
+  openrouteservice isochrones set the study area and are the backup for any zip
+  that can't be routed.
 - **Geography:** 2020 Census ZCTAs and counties via `pygris`. PO-box zips are
   mapped to their containing ZCTA in `config.PO_BOX_ZIP_TO_ZCTA`.
 - **Privacy:** only aggregated counts are published. Age and membership-type
