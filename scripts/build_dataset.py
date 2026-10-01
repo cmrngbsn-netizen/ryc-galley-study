@@ -156,20 +156,43 @@ def assign_bands(zips, iso, ryc):
     return zips.drop(columns="iso_band")
 
 
-def band_outlines(zips, smooth_m=800, min_part_km2=3):
-    """Display rings built from the zips themselves: for each band, dissolve
-    every zip whose routed time is within it (cumulative), then close small
-    gaps, drop holes and slivers, and simplify. The rings therefore agree
-    exactly with the zip band assignments used everywhere else."""
+def band_outlines(zips, gap_m=60, min_part_km2=1, min_hole_km2=3):
+    """Display rings that follow zip boundaries exactly: for each band,
+    dissolve every zip whose routed time is within it (cumulative). A tiny
+    buffer out/in only closes slivers between neighboring Census polygons.
+    Holes (zips in a slower band surrounded by faster ones) are kept, so a
+    ring line never cuts through a zip: each zip is wholly inside or outside."""
     from shapely.geometry import MultiPolygon, Polygon
 
     z = zips[zips["band"].notna()].to_crs(EQUAL_AREA_CRS)
     rows = []
     for b in sorted(config.DRIVE_TIME_BANDS_MIN):
-        geom = z[z["band"] <= b].union_all().buffer(smooth_m).buffer(-smooth_m)
+        geom = z[z["band"] <= b].union_all().buffer(gap_m).buffer(-gap_m)
         parts = geom.geoms if isinstance(geom, MultiPolygon) else [geom]
-        parts = [Polygon(p.exterior).simplify(150) for p in parts if p.area >= min_part_km2 * 1e6]
+        parts = [Polygon(p.exterior, [h for h in p.interiors if Polygon(h).area >= min_hole_km2 * 1e6]).simplify(30)
+                 for p in parts if p.area >= min_part_km2 * 1e6]
         rows.append({"minutes": b, "geometry": MultiPolygon(parts) if len(parts) > 1 else parts[0]})
+    return gpd.GeoDataFrame(rows, crs=EQUAL_AREA_CRS)
+
+
+def ring_lines(outlines, shared_m=80, min_len_m=300):
+    """Outline polygons -> display lines. Where a ring runs along the next
+    smaller ring (typically a shared shoreline), drop the larger ring's line
+    so only one line is drawn there instead of a stack of parallel ones."""
+    from shapely.geometry import LineString, MultiLineString
+    from shapely.ops import linemerge
+
+    rows, inner = [], None
+    for _, r in outlines.sort_values("minutes").iterrows():
+        line = r.geometry.boundary
+        if inner is not None:
+            line = line.difference(inner.buffer(shared_m))
+        parts = line.geoms if hasattr(line, "geoms") else [line]
+        parts = [g for g in parts if isinstance(g, LineString) and g.length >= min_len_m]
+        merged = linemerge(parts) if parts else None
+        if merged is not None and not merged.is_empty:
+            rows.append({"minutes": r["minutes"], "geometry": merged})
+        inner = r.geometry if inner is None else inner.union(r.geometry)
     return gpd.GeoDataFrame(rows, crs=EQUAL_AREA_CRS).to_crs(4326)
 
 
@@ -328,7 +351,7 @@ def main():
             "pt_lon", "pt_lat", "geometry"]
     out[cols].to_file(config.PUBLIC_DATA_DIR / "zips.geojson", driver="GeoJSON",
                       COORDINATE_PRECISION=5)
-    band_outlines(zips).to_file(config.PUBLIC_DATA_DIR / "rings.geojson", driver="GeoJSON",
+    ring_lines(band_outlines(zips)).to_file(config.PUBLIC_DATA_DIR / "rings.geojson", driver="GeoJSON",
                                  COORDINATE_PRECISION=5)
     (config.PUBLIC_DATA_DIR / "isochrones.geojson").unlink(missing_ok=True)
     (config.PUBLIC_DATA_DIR / "summary.json").write_text(json.dumps(summary, indent=2))

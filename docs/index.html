@@ -384,7 +384,7 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
   <ul>
     <li><strong>Per-zip drive time and road distance</strong> come from the openrouteservice Matrix API, using the driving-car profile on the OpenStreetMap road network. Each route is calculated between the clubhouse and a <em>representative point</em> of the zip: a point guaranteed to be inside the zip's boundary, unlike a geometric centroid, which can land in the Bay.</li>
     <li>Zips are placed in bands by routed time: 0–15, 15–30, 30–45, 45–60, or more than 60 minutes. Upper limits are inclusive, so a 15.0-minute zip is in the 0–15 band. <span id="fallbackNote"></span></li>
-    <li><strong>The drive-time rings on Map 1</strong> are built from the same routed zip times. For each band, all zips within that time are merged into one area, and the outline is generalized for legibility: small gaps are closed (1.2 km buffer), thin spikes are trimmed (0.5 km), and the edges are smoothed into curves (Chaikin smoothing). Where a ring runs along a smaller ring, usually a shared shoreline, only the smaller ring's line is drawn. The rings are a visual guide; each zip's exact band is in its tooltip. The zips inside the "15 min" ring are the zips in the 0–15 minute band. openrouteservice isochrones set the study-area extent and are the backup method for any zip that can't be routed.</li>
+    <li><strong>The drive-time rings on Map 1</strong> are built from the same routed zip times. For each band, all zips within that time are merged into one area, and the ring is drawn along that area's edge, following zip boundaries exactly. Every zip is therefore wholly inside or outside each ring, and the zips inside the "15 min" ring are exactly the zips in the 0–15 minute band. Only slivers between neighboring Census boundaries are closed (60 m), and where a ring runs along a smaller ring, usually a shared shoreline, only the smaller ring's line is drawn.</li>
     <li>Travel times assume typical free-flow speeds with <strong>no live traffic</strong>. The traffic factor in the demand model shows how sensitive the results are to congestion.</li>
   </ul>
   <h3>3. Geography and cartography</h3>
@@ -572,6 +572,10 @@ Promise.all([
     <hr><div class="lt">Drive time to clubhouse</div><div class="lu">Minutes, no traffic</div>
     ${B.map((b) => `<div class="row"><i class="linesw" style="border-color:${bandColor(b.band)}"></i>${b.band} min</div>`).join("")}`;
   const map1 = makeMap(1, lg1);
+  // Rings live in their own pane above the zips, so hovering a zip (which brings it forward) can never cover them.
+  const ringPane = map1.createPane("rings");
+  ringPane.style.zIndex = 450;
+  ringPane.style.pointerEvents = "none";
   const zStyle1 = (f) => {
     const k = mClass(f.properties.memberships);
     return k < 0 ? { fillColor: "url(#hatch1)", fillOpacity: 0.7, color: "#6b7c90", weight: 0.4, opacity: 0.4 }
@@ -593,28 +597,23 @@ Promise.all([
   const ringGroups = Object.fromEntries(rings.features.map((f) => {
     const m = f.properties.minutes, c = bandColor(m), [x, y] = northmost(f.geometry);
     return [m, L.layerGroup([
-      L.geoJSON(f, { interactive: false, style: () => ({ fill: false, color: "#16202b", weight: 4.2, opacity: 0.35, lineJoin: "round" }) }),
-      L.geoJSON(f, { interactive: false, style: () => ({ fill: false, color: c, weight: 2.6, opacity: 1 }) }),
+      L.geoJSON(f, { pane: "rings", interactive: false, style: () => ({ fill: false, color: "#16202b", weight: 4.4, opacity: 0.45 }) }),
+      L.geoJSON(f, { pane: "rings", interactive: false, style: () => ({ fill: false, color: c, weight: 2.6, opacity: 1 }) }),
       L.marker([y, x], { interactive: false, keyboard: false, icon: L.divIcon({ className: "", iconSize: null,
         html: `<div style="transform:translate(-50%,-50%);white-space:nowrap;background:${css("--bg")};color:${c};border:1.5px solid ${c};border-radius:999px;padding:1px 8px;font:700 11px Inter,sans-serif">${m} min</div>` }) }),
     ])];
   }));
-  // Keep rings above the zips, largest first so each smaller ring's line sits on top of a shared edge.
-  const raiseRings = () => Object.keys(ringGroups).map(Number).sort((a, b) => b - a)
-    .forEach((m) => map1.hasLayer(ringGroups[m]) && ringGroups[m].eachLayer((l) => l.bringToFront && l.bringToFront()));
   $("#ringTools").insertAdjacentHTML("beforeend", B.map((b) =>
     `<label><input type="checkbox" data-ring="${b.band}" checked><i class="linesw" style="border-color:${bandColor(b.band)}"></i>${b.band} min</label>`).join(""));
   document.querySelectorAll("[data-ring]").forEach((cb) => cb.addEventListener("change", () => {
     const g = ringGroups[cb.dataset.ring];
     cb.checked ? g.addTo(map1) : map1.removeLayer(g);
-    raiseRings();
   }));
 
   const drawZips1 = () => {
     const on = zoneOn();
     if (layers[1].zips) map1.removeLayer(layers[1].zips);
     layers[1].zips = zipLayer(zStyle1, (p) => on.has(zoneOf(p))).addTo(map1);
-    raiseRings();
     const shown = Z.filter((p) => p.memberships > 0 && on.has(zoneOf(p)));
     const n = shown.reduce((a, p) => a + p.memberships, 0);
     $("#bandCount").innerHTML = `Showing <b>${fmt(n)}</b> memberships in <b>${fmt(shown.length)}</b> zip codes (${pct(n / T.all_memberships)} of all memberships)` +
