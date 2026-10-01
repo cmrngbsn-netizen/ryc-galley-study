@@ -156,26 +156,41 @@ def assign_bands(zips, iso, ryc):
     return zips.drop(columns="iso_band")
 
 
-def band_outlines(zips, gap_m=60, min_part_km2=1, min_hole_km2=3):
-    """Display rings that follow zip boundaries exactly: for each band,
-    dissolve every zip whose routed time is within it (cumulative). A tiny
-    buffer out/in only closes slivers between neighboring Census polygons.
-    Holes (zips in a slower band surrounded by faster ones) are kept, so a
-    ring line never cuts through a zip: each zip is wholly inside or outside."""
+def chaikin(coords, iterations=3):
+    """Chaikin corner-cutting on a closed ring: rounds the stair-step zip
+    edges into smooth curves without shifting the outline appreciably."""
+    pts = list(coords[:-1])
+    for _ in range(iterations):
+        new = []
+        for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1]):
+            new += [(0.75 * x0 + 0.25 * x1, 0.75 * y0 + 0.25 * y1),
+                    (0.25 * x0 + 0.75 * x1, 0.25 * y0 + 0.75 * y1)]
+        pts = new
+    return pts + pts[:1]
+
+
+def band_outlines(zips, close_m=1200, open_m=500, min_part_km2=3):
+    """Display rings built from the zips themselves: for each band, dissolve
+    every zip whose routed time is within it (cumulative), close small gaps
+    (buffer out/in), trim thin spikes (buffer in/out), drop holes and slivers,
+    then simplify and curve-smooth. Rings follow the zip band assignments
+    used everywhere else, generalized for legibility."""
     from shapely.geometry import MultiPolygon, Polygon
 
     z = zips[zips["band"].notna()].to_crs(EQUAL_AREA_CRS)
     rows = []
     for b in sorted(config.DRIVE_TIME_BANDS_MIN):
-        geom = z[z["band"] <= b].union_all().buffer(gap_m).buffer(-gap_m)
+        geom = (z[z["band"] <= b].union_all()
+                .buffer(close_m).buffer(-close_m)
+                .buffer(-open_m).buffer(open_m))
         parts = geom.geoms if isinstance(geom, MultiPolygon) else [geom]
-        parts = [Polygon(p.exterior, [h for h in p.interiors if Polygon(h).area >= min_hole_km2 * 1e6]).simplify(30)
+        parts = [Polygon(chaikin(list(Polygon(p.exterior).simplify(200).exterior.coords))).simplify(20)
                  for p in parts if p.area >= min_part_km2 * 1e6]
         rows.append({"minutes": b, "geometry": MultiPolygon(parts) if len(parts) > 1 else parts[0]})
     return gpd.GeoDataFrame(rows, crs=EQUAL_AREA_CRS)
 
 
-def ring_lines(outlines, shared_m=80, min_len_m=300):
+def ring_lines(outlines, shared_m=400, min_len_m=1000):
     """Outline polygons -> display lines. Where a ring runs along the next
     smaller ring (typically a shared shoreline), drop the larger ring's line
     so only one line is drawn there instead of a stack of parallel ones."""
