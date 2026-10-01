@@ -384,7 +384,7 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
   <ul>
     <li><strong>Per-zip drive time and road distance</strong> come from the openrouteservice Matrix API, using the driving-car profile on the OpenStreetMap road network. Each route is calculated between the clubhouse and a <em>representative point</em> of the zip: a point guaranteed to be inside the zip's boundary, unlike a geometric centroid, which can land in the Bay.</li>
     <li>Zips are placed in bands by routed time: 0–15, 15–30, 30–45, 45–60, or more than 60 minutes. Upper limits are inclusive, so a 15.0-minute zip is in the 0–15 band. <span id="fallbackNote"></span></li>
-    <li><strong>The drive-time rings on Map 1</strong> are built from the same routed zip times. For each band, all zips within that time are merged into one area, and the outline is generalized for legibility: small gaps are closed (1.2 km buffer), thin spikes are trimmed (0.5 km), and the edges are smoothed into curves (Chaikin smoothing). Where a ring runs along a smaller ring, usually a shared shoreline, only the smaller ring's line is drawn. Because of the smoothing, a ring can pass through the edge of a zip; the rings are a visual guide, and each zip's exact drive time and band are in its tooltip and used in every count.</li>
+    <li><strong>The drive-time rings on Map 1</strong> are built from the same routed zip times. For each band, all zips within that time are merged into one area, and the ring is drawn along that area's edge, using the same zip boundaries shown on the map. Every zip is therefore wholly inside or outside each ring, and the zips inside the "15 min" ring are exactly the zips in the 0–15 minute band. Only hairline slivers between neighboring Census boundaries are closed (60 m), and where a ring runs along a smaller ring, usually a shared shoreline, only the smaller ring's line is drawn.</li>
     <li>Travel times assume typical free-flow speeds with <strong>no live traffic</strong>. The traffic factor in the demand model shows how sensitive the results are to congestion.</li>
   </ul>
   <h3>3. Geography and cartography</h3>
@@ -529,6 +529,7 @@ Promise.all([
     layers[n].club = L.marker([S.club.lat, S.club.lon], { icon: clubIcon, zIndexOffset: 1000, keyboard: false })
       .bindTooltip("<b>Richmond Yacht Club</b><br>351 Brickyard Cove Rd", { className: "zt" }).addTo(map);
     layers[n].map = map;
+    map.on("mouseout", () => clearHighlight(map));
     // Hover outlines go in a pane above everything else (including drive-time rings) so they're never hidden.
     const hilite = map.createPane("hilite");
     hilite.style.zIndex = 460;
@@ -550,6 +551,10 @@ Promise.all([
     ageText(p),
   ].filter(Boolean).join("<br>");
   // Hover outlines just the zip under the cursor; the layer's own style function restores it.
+  const clearHighlight = (map) => {
+    if (map._hlLayer) { map._hlReset(); map._hlLayer = null; }
+    if (map._hlStripe) { map._hlStripe.remove(); map._hlStripe = null; }
+  };
   const zipLayer = (styleFn, filter = () => true) => {
     const layer = L.geoJSON(zips, {
       style: styleFn,
@@ -558,12 +563,19 @@ Promise.all([
         l.bindTooltip(tip(f.properties), { sticky: true, className: "zt", direction: "auto" });
         // Two-part highlight: a thick white outline under the rings, plus a thin white stripe above them,
         // so where the zip edge meets a ring the ring's color still shows on both sides of the stripe.
+        // One highlight per map at a time: always clear the previous one first, so repeated
+        // mouseover events (bringToFront can trigger them) never leave a stray outline behind.
         l.on("mouseover", (e) => {
+          const map = e.target._map;
+          if (map._hlLayer === l) return;
+          clearHighlight(map);
           l.setStyle(HILITE);
           l.bringToFront();
-          l._hl = L.geoJSON(f, { pane: "hilite", interactive: false, style: () => ({ fill: false, color: "#ffffff", weight: 1.2, opacity: 1 }) }).addTo(e.target._map);
+          map._hlLayer = l;
+          map._hlReset = () => layer.resetStyle(l);
+          map._hlStripe = L.geoJSON(f, { pane: "hilite", interactive: false, style: () => ({ fill: false, color: "#ffffff", weight: 1.2, opacity: 1 }) }).addTo(map);
         });
-        l.on("mouseout", () => { layer.resetStyle(l); l._hl?.remove(); l._hl = null; });
+        l.on("mouseout", (e) => { if (e.target._map?._hlLayer === l) clearHighlight(e.target._map); });
       },
     });
     return layer;
