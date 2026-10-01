@@ -144,6 +144,8 @@ input[type=number] { width: 90px; padding: 5px 8px; border: 1px solid var(--bord
 .method h3 { margin-top: 24px; font-size: 16px; }
 .sources li { margin-bottom: 8px; }
 .sources a { color: var(--link); }
+footer a.author { color: var(--link); text-decoration: none; border-bottom: 1px solid currentColor; }
+footer a.author:hover { color: var(--ink); }
 footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 40px; font-size: 13px; color: var(--ink-3); }
 @media (max-width: 860px) {
     .sn-title { display: none; }
@@ -382,7 +384,7 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
   <ul>
     <li><strong>Per-zip drive time and road distance</strong> come from the openrouteservice Matrix API, using the driving-car profile on the OpenStreetMap road network. Each route is calculated between the clubhouse and a <em>representative point</em> of the zip: a point guaranteed to be inside the zip's boundary, unlike a geometric centroid, which can land in the Bay.</li>
     <li>Zips are placed in bands by routed time: 0–15, 15–30, 30–45, 45–60, or more than 60 minutes. Upper limits are inclusive, so a 15.0-minute zip is in the 0–15 band. <span id="fallbackNote"></span></li>
-    <li><strong>The drive-time rings on Map 1</strong> are built from the same routed zip times. For each band, all zips within that time are merged into one area, and small gaps are closed (0.8 km buffer) so the outline reads cleanly. A zip inside the "15 min" ring is therefore exactly a zip in the 0–15 minute band. openrouteservice isochrones set the study-area extent and are the backup method for any zip that can't be routed.</li>
+    <li><strong>The drive-time rings on Map 1</strong> are built from the same routed zip times. For each band, all zips within that time are merged into one area, and the outline is generalized for legibility: small gaps are closed (1.2 km buffer), thin spikes are trimmed (0.5 km), and the edges are smoothed into curves (Chaikin smoothing). Where a ring runs along a smaller ring, usually a shared shoreline, only the smaller ring's line is drawn. The rings are a visual guide; each zip's exact band is in its tooltip. The zips inside the "15 min" ring are the zips in the 0–15 minute band. openrouteservice isochrones set the study-area extent and are the backup method for any zip that can't be routed.</li>
     <li>Travel times assume typical free-flow speeds with <strong>no live traffic</strong>. The traffic factor in the demand model shows how sensitive the results are to congestion.</li>
   </ul>
   <h3>3. Geography and cartography</h3>
@@ -422,7 +424,7 @@ footer { border-top: 1px solid var(--border); margin-top: 40px; padding: 24px 0 
 </main>
 
 <footer>
-  <div class="wrap">Analysis &amp; cartography: Cameron Gibson, MS GIS · Prepared for the Richmond Yacht Club Board of Directors · <span id="footDate"></span></div>
+  <div class="wrap">Analysis &amp; cartography: <a class="author" href="https://www.linkedin.com/in/cameron-gibson-14a61013a/" target="_blank" rel="noopener">Cameron Gibson, MS GIS</a> · Prepared for the Richmond Yacht Club Board of Directors · <span id="footDate"></span></div>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -583,15 +585,15 @@ Promise.all([
   const zoneOn = () => new Set([...document.querySelectorAll("[data-zone]")].filter((c) => c.checked).map((c) => c.dataset.zone));
   // Drive-time rings: one group (dark casing + colored line + label) per ring, each with its own checkbox.
   const northmost = (geom) => {
-    const polys = geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+    const lines = geom.type === "LineString" ? [geom.coordinates] : geom.coordinates;
     let best = null;
-    polys.forEach((poly) => poly[0].forEach(([x, y]) => { if (!best || y > best[1]) best = [x, y]; }));
+    lines.forEach((line) => line.forEach(([x, y]) => { if (!best || y > best[1]) best = [x, y]; }));
     return best;
   };
   const ringGroups = Object.fromEntries(rings.features.map((f) => {
     const m = f.properties.minutes, c = bandColor(m), [x, y] = northmost(f.geometry);
     return [m, L.layerGroup([
-      L.geoJSON(f, { interactive: false, style: () => ({ fill: false, color: "#16202b", weight: 4.6, opacity: 0.55 }) }),
+      L.geoJSON(f, { interactive: false, style: () => ({ fill: false, color: "#16202b", weight: 4.2, opacity: 0.35, lineJoin: "round" }) }),
       L.geoJSON(f, { interactive: false, style: () => ({ fill: false, color: c, weight: 2.6, opacity: 1 }) }),
       L.marker([y, x], { interactive: false, keyboard: false, icon: L.divIcon({ className: "", iconSize: null,
         html: `<div style="transform:translate(-50%,-50%);white-space:nowrap;background:${css("--bg")};color:${c};border:1.5px solid ${c};border-radius:999px;padding:1px 8px;font:700 11px Inter,sans-serif">${m} min</div>` }) }),
@@ -674,13 +676,13 @@ Promise.all([
   new Chart($("#cCapture"), {
     type: "line",
     data: { datasets: [{ data: pts, stepped: true, borderColor: css("--link"), borderWidth: 2, pointRadius: 0, fill: { target: "origin" }, backgroundColor: "rgba(156,195,230,.12)" },
-      { data: B.map((b) => ({ x: b.band, y: 100 * b.cumulative_share })), type: "scatter", pointRadius: 5, pointBackgroundColor: css("--gold"), pointBorderColor: css("--surface"), pointBorderWidth: 2 }] },
+      { data: B.map((b) => ({ x: b.band, y: 100 * b.cumulative_share })), type: "scatter", pointRadius: 5, pointBackgroundColor: B.map((b) => bandColor(b.band)), pointBorderColor: css("--surface"), pointBorderWidth: 2 }] },
     options: { parsing: false,
       scales: { x: { type: "linear", min: 0, max: 90, ticks: { stepSize: 15 }, title: axisTitle("Drive time to clubhouse (minutes)") },
-                y: { min: 0, max: 100, ticks: { callback: (v) => v + "%" }, title: axisTitle("Cumulative share of all memberships") } },
+                y: { min: 0, max: 100, ticks: { callback: (v) => v + "%" }, title: axisTitle("Share of memberships") } },
       plugins: { tooltip: { callbacks: { title: (i) => `Within ${Math.round(i[0].parsed.x)} min`, label: (i) => `${i.parsed.y.toFixed(0)}% of memberships` } } } },
   });
-  $("#nCapture").textContent = `Gold dots mark the 15/30/45/60-minute band edges. The line tops out below 100% because ${fmt(T.ca_beyond_60 + T.out_of_state)} memberships are farther away or out of state.`;
+  $("#nCapture").textContent = `Colored dots mark the 15, 30, 45 and 60-minute marks, in the same colors as the drive-time bands. The line tops out below 100% because ${fmt(T.ca_beyond_60 + T.out_of_state)} memberships are farther away or out of state.`;
 
   // Bands stacked
   new Chart($("#cBands"), {
