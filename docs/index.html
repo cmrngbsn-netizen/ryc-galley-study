@@ -37,6 +37,7 @@ section, #top { scroll-margin-top: 64px; }
 .sn-links a:hover { color: var(--ink); background: var(--surface-2); }
 .sn-links a.active { color: #0d1b2a; background: var(--gold); }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .stickynav { transition: none; } }
+p, li { text-wrap: pretty; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 Inter, system-ui, sans-serif; }
 .wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
 header.hero { border-bottom: 1px solid var(--border); background: var(--surface); }
@@ -50,7 +51,7 @@ h3 { font-size: 15px; margin: 0 0 4px; }
 nav.toc { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; font-size: 14px; }
 nav.toc a { color: var(--link); text-decoration: none; font-weight: 500; }
 section { padding: 40px 0 8px; }
-.sub { color: var(--ink-2); margin: 0 0 18px; max-width: 800px; }
+.sub { color: var(--ink-2); margin: 0 0 18px; max-width: 800px; text-wrap: balance; }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; }
 .headline { font-size: clamp(24px, 3.2vw, 32px); margin: 6px 0 18px; max-width: 900px; line-height: 1.25; }
 .headline b { color: var(--gold); }
@@ -69,7 +70,7 @@ section { padding: 40px 0 8px; }
 .cta { display: inline-block; background: var(--gold); color: #0d1b2a; font-weight: 700; padding: 9px 16px; border-radius: 8px; text-decoration: none; }
 .divider { display: flex; align-items: center; gap: 14px; margin: 44px 0 0; color: var(--ink-3); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 .divider::before, .divider::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
-.defn { font-size: 13px; color: var(--ink-3); margin-top: 10px; max-width: 920px; }
+.defn { font-size: 13px; color: var(--ink-3); margin-top: 10px; max-width: 920px; text-wrap: balance; }
 
 /* Map figures: a cartographic layout -- title block, framed map, source line */
 .mapfig { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 22px; }
@@ -105,7 +106,9 @@ section { padding: 40px 0 8px; }
 /* Charts */
 .charts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
 .chart .reads { color: var(--ink-2); font-size: 13.5px; margin: 0 0 12px; }
-.chart .box { position: relative; height: 230px; }
+.chart { display: flex; flex-direction: column; }
+.chart .box { position: relative; height: 230px; margin: auto 0; }
+.chart .box > canvas { position: absolute; inset: 0; }
 .chart .note { font-size: 12px; color: var(--ink-3); margin-top: 10px; }
 .chart .legend-inline { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); margin-bottom: 8px; }
 .chart .legend-inline span { display: inline-flex; align-items: center; gap: 6px; }
@@ -696,8 +699,8 @@ Promise.all([
   pts.push({ x: 90, y: pts.at(-1).y });
   new Chart($("#cCapture"), {
     type: "line",
-    data: { datasets: [{ data: pts, stepped: true, borderColor: css("--link"), borderWidth: 2, pointRadius: 0, fill: { target: "origin" }, backgroundColor: "rgba(156,195,230,.12)" },
-      { data: B.map((b) => ({ x: b.band, y: 100 * b.cumulative_share })), type: "scatter", pointRadius: 5, pointBackgroundColor: B.map((b) => bandColor(b.band)), pointBorderColor: css("--surface"), pointBorderWidth: 2 }] },
+    data: { datasets: [{ data: pts, stepped: true, borderColor: css("--link"), borderWidth: 2, pointRadius: 0, fill: { target: "origin" }, backgroundColor: "rgba(156,195,230,.12)", order: 2 },
+      { data: B.map((b) => ({ x: b.band, y: 100 * b.cumulative_share })), type: "scatter", order: 1, pointRadius: 6.5, pointHoverRadius: 8, pointBackgroundColor: B.map((b) => bandColor(b.band)), pointBorderColor: "#0d1b2a", pointBorderWidth: 2 }] },
     options: { parsing: false,
       scales: { x: { type: "linear", min: 0, max: 90, ticks: { stepSize: 15 }, title: axisTitle("Drive time to clubhouse (minutes)") },
                 y: { min: 0, max: 100, ticks: { callback: (v) => v + "%" }, title: axisTitle("Share of memberships") } },
